@@ -1,0 +1,205 @@
+<!-- ======================== AUDIT.HTML ======================== -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nueva Auditoría - Herramientas SEO</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="page-herramientas-audit">
+    
+    <!-- NAVIGATION -->
+    <nav class="herramientas-nav herramientas-nav-logged">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="dashboard.html" class="brand-link">&#128295; Herramientas SEO</a>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <span class="user-welcome">Hola, <strong>Usuario</strong></span>
+                <a href="/" class="nav-link">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- AUDIT FORM SECTION -->
+    <section class="herramientas-audit-section">
+        <div class="container">
+            
+            <div class="audit-header">
+                <h1>&#128640; Nueva Auditoría SEO</h1>
+                <p>Configura los parámetros para analizar tu sitio web</p>
+            </div>
+
+            <div class="audit-container">
+                
+                <form class="audit-form" action="#" method="POST">
+                    
+                    <div class="form-group">
+                        <label for="website_url">URL del sitio web</label>
+                        <input type="url" id="website_url" name="website_url" placeholder="https://ejemplo.com" required>
+                        <small>Incluye https:// o http://</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="crawl_depth">Profundidad del crawl</label>
+                            <select id="crawl_depth" name="crawl_depth">
+                                <option value="1">1 nivel (solo página principal)</option>
+                                <option value="2" selected>2 niveles (recomendado)</option>
+                                <option value="3">3 niveles (sitios medianos)</option>
+                                <option value="4">4 niveles (sitios grandes)</option>
+                                <option value="5">5 niveles (auditoría completa)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user_agent">User Agent</label>
+                            <select id="user_agent" name="user_agent">
+                                <option value="mobile" selected>Mobile (Googlebot Mobile)</option>
+                                <option value="desktop">Desktop (Googlebot Desktop)</option>
+                                <option value="both">Ambos (análisis completo)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="audit-options">
+                        <h3>Opciones de análisis</h3>
+                        <div class="options-grid">
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_meta" name="analysis[]" value="meta" checked>
+                                <label for="check_meta">Meta tags y títulos</label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_images" name="analysis[]" value="images" checked>
+                                <label for="check_images">Optimización de imágenes</label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_links" name="analysis[]" value="links" checked>
+                                <label for="check_links">Enlaces internos y externos</label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_speed" name="analysis[]" value="speed">
+                                <label for="check_speed">Velocidad de carga</label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_schema" name="analysis[]" value="schema">
+                                <label for="check_schema">Schema markup</label>
+                            </div>
+                            
+                            <div class="option-item">
+                                <input type="checkbox" id="check_errors" name="analysis[]" value="errors" checked>
+                                <label for="check_errors">Errores 404 y redirects</label>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="herramientas-cta-primary herramientas-cta-large" id="start-audit-btn">
+                            &#128640; Iniciar Auditoría
+                        </button>
+                        <a href="dashboard.html" class="herramientas-cta-secondary">Cancelar</a>
+                    </div>
+
+                </form>
+
+                <!-- PROGRESS SECTION (Initially hidden) -->
+                <div class="audit-progress" id="audit-progress" style="display: none;">
+                    <h3>Auditoría en progreso...</h3>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text">
+                            <span id="progress-percentage">0%</span>
+                            <span id="progress-status">Iniciando análisis...</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-steps">
+                        <div class="step step-active">
+                            <div class="step-icon">1</div>
+                            <div class="step-text">Rastreando sitio</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">2</div>
+                            <div class="step-text">Analizando URLs</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">3</div>
+                            <div class="step-text">Generando reporte</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">&#10004;</div>
+                            <div class="step-text">Completado</div>
+                        </div>
+                    </div>
+
+                    <div class="progress-info">
+                        <p><strong>URLs encontradas:</strong> <span id="urls-found">0</span></p>
+                        <p><strong>URLs analizadas:</strong> <span id="urls-analyzed">0</span></p>
+                        <p><strong>Tiempo estimado:</strong> <span id="time-remaining">Calculando...</span></p>
+                    </div>
+
+                </div>
+
+            </div>
+            
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="herramientas-footer">
+        <div class="container">
+            <p>Creado con ❤️ por <a href="https://jorgelaborda.es" target="_blank">jorgelaborda.es</a></p>
+        </div>
+    </footer>
+
+    <!-- Basic JavaScript for demo -->
+    <script>
+        document.getElementById('start-audit-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Hide form and show progress
+            document.querySelector('.audit-form').style.display = 'none';
+            document.getElementById('audit-progress').style.display = 'block';
+            
+            // Simulate progress (for demo purposes)
+            let progress = 0;
+            const progressBar = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-percentage');
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    
+                    // Redirect to results page after completion
+                    setTimeout(() => {
+                        alert('¡Auditoría completada! Redirigiendo a resultados...');
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                }
+                
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+                
+                // Update URLs for demo
+                document.getElementById('urls-found').textContent = Math.round(progress * 2.5);
+                document.getElementById('urls-analyzed').textContent = Math.round(progress * 2);
+                
+            }, 500);
+        });
+    </script>
+
+</body>
+</html>
