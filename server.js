@@ -17,6 +17,7 @@ const { promisify } = require('util');
 const gunzip = promisify(zlib.gunzip);
 
 const app = express();
+app.set('trust proxy', true); // Para Nginx reverse proxy
 const PORT = process.env.PORT || 3000;
 
 // Configuración
@@ -33,8 +34,6 @@ const dbConfig = {
   database: process.env.DB_NAME || 'herramientas_db',
   port: process.env.DB_PORT || 3306,
   connectionLimit: 10,
-  acquireTimeout: 15000,
-  reconnect: true,
   supportBigNumbers: true,
   bigNumberStrings: true
 };
@@ -716,4 +715,5 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
