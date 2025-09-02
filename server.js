@@ -1,6 +1,35 @@
 // server.js - VERSIÓN OPTIMIZADA para hostings compartidos (cPanel/Banahosting)
 require('dotenv').config();
 
+// Añadir después de: const crypto = require('crypto');
+
+const multer = require('multer');
+const path = require('path');
+
+// Configuración de multer para subida de archivos
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, '/tmp/') // Guardar en /tmp temporalmente
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024 // 100MB máximo
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.originalname.match(/\.(log|gz)$/)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos .log y .gz'));
+    }
+  }
+});
+
 // Cargar configuración específica para producción
 if (process.env.NODE_ENV === 'production') {
   require('dotenv').config({ path: '.env.production', override: true });
