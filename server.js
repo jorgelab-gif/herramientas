@@ -67,6 +67,9 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos de autenticación. Intenta en 15 minutos.' }
 });
 
+//Servir archivos estáticos
+app.use(express.static('public'));
+
 // Configuración MySQL OPTIMIZADA para hostings compartidos
 const dbConfig = {
   host: DB_HOST,
@@ -743,5 +746,6 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Promesa rechazada no manejada:', reason);
 });
+
 
 module.exports = app;
