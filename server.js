@@ -1,15 +1,48 @@
-// server.js - VERSIÓN OPTIMIZADA para hostings compartidos (cPanel/Banahosting)
+// server.js - Versión optimizada para VPS con analizador de logs
 require('dotenv').config();
 
-// Añadir después de: const crypto = require('crypto');
-
+const express = require('express');
+const mysql = require('mysql2');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const crypto = require('crypto');
 const multer = require('multer');
-const path = require('path');
+const fs = require('fs').promises;
+const zlib = require('zlib');
+const { promisify } = require('util');
+const gunzip = promisify(zlib.gunzip);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Configuración
+const JWT_SECRET = process.env.JWT_SECRET || 'tu_jwt_secret_muy_seguro_aqui';
+const EMAIL_USER = process.env.EMAIL_USER || 'herramientas@jorgelaborda.es';
+const EMAIL_PASS = process.env.EMAIL_PASS || 'tu-app-password';
+const BASE_URL = process.env.BASE_URL || 'https://herramientas.jorgelaborda.es';
+
+// Configuración MySQL
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'herramientas_user',
+  password: process.env.DB_PASS || '',
+  database: process.env.DB_NAME || 'herramientas_db',
+  port: process.env.DB_PORT || 3306,
+  connectionLimit: 10,
+  acquireTimeout: 15000,
+  reconnect: true,
+  supportBigNumbers: true,
+  bigNumberStrings: true
+};
 
 // Configuración de multer para subida de archivos
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, '/tmp/') // Guardar en /tmp temporalmente
+    cb(null, '/tmp/')
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname)
@@ -30,131 +63,38 @@ const upload = multer({
   }
 });
 
-// Cargar configuración específica para producción
-if (process.env.NODE_ENV === 'production') {
-  require('dotenv').config({ path: '.env.production', override: true });
-}
-
-const express = require('express');
-const mysql = require('mysql2');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { body, validationResult } = require('express-validator');
-const crypto = require('crypto');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Configuración - Compatible con .htaccess y .env
-const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT || 'tu_jwt_secret_muy_seguro_aqui';
-const EMAIL_USER = process.env.EMAIL_USER || 'tu-email@gmail.com';
-const EMAIL_PASS = process.env.EMAIL_PASS || 'tu-app-password';
-const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
-
-// Configuración MySQL
-const DB_HOST = process.env.DB_HOST || 'localhost';
-const DB_NAME = process.env.DB_NAME || 'herramientas_db';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASS = process.env.DB_PASS || '';
-const DB_PORT = process.env.DB_PORT || 3306;
-
-// VARIABLES GLOBALES para tracking
-let isShuttingDown = false;
-let activeConnections = new Set();
-let activeTimeouts = new Set();
-
 // Middleware básico
-app.use(express.json({ 
-  limit: '2mb',
-  strict: true 
-}));
-
+app.use(express.json({ limit: '2mb' }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+  origin: process.env.FRONTEND_URL || BASE_URL,
   credentials: true,
   maxAge: 300
 }));
 
-// Rate limiting conservador para hosting compartido
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 50,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes. Intenta en 15 minutos.' }
 });
 app.use(limiter);
 
-// Rate limiting específico para auth
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 3,
+  max: 5,
   skipSuccessfulRequests: true,
   message: { error: 'Demasiados intentos de autenticación. Intenta en 15 minutos.' }
 });
 
-//Servir archivos estáticos
+// Servir archivos estáticos
 app.use(express.static('public'));
 
-// Configuración MySQL OPTIMIZADA para hostings compartidos
-const dbConfig = {
-  host: DB_HOST,
-  user: DB_USER,
-  password: DB_PASS,
-  database: DB_NAME,
-  port: DB_PORT,
-  
-  // CONFIGURACIÓN OPTIMIZADA para MySQL2
-  connectionLimit: 3,        // Máximo 3 conexiones simultáneas
-  queueLimit: 5,            // Máximo 5 en cola
-  acquireTimeout: 15000,    // 15s para obtener conexión
-  
-  // CONFIGURACIÓN ROBUSTA
-  ssl: false,
-  supportBigNumbers: true,
-  bigNumberStrings: true,
-  
-  // TIMEOUTS
-  idleTimeout: 300000,      // 5 minutos idle antes de cerrar conexión
-  
-  // RECONEXIÓN
-  reconnect: true
-};
-
-// Crear pool de conexiones
-let db;
-const createDatabasePool = () => {
-  try {
-    db = mysql.createPool(dbConfig);
-    
-    db.on('connection', (connection) => {
-      console.log(`Nueva conexión MySQL: ${connection.threadId}`);
-      activeConnections.add(connection.threadId);
-    });
-    
-    db.on('error', (err) => {
-      console.error('Error en pool MySQL:', err.code);
-      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        console.log('Recreando pool MySQL...');
-        createDatabasePool();
-      }
-    });
-    
-    console.log('Pool MySQL creado correctamente');
-  } catch (error) {
-    console.error('Error creando pool MySQL:', error);
-  }
-};
-
-createDatabasePool();
-
-// Promisify con mejor error handling
+// Crear pool de conexiones MySQL
+const db = mysql.createPool(dbConfig);
 const promiseDb = db.promise();
 
-// Función para queries con retry automático
 const safeQuery = async (query, params = [], retries = 2) => {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -162,20 +102,16 @@ const safeQuery = async (query, params = [], retries = 2) => {
       return result;
     } catch (error) {
       console.error(`Query falló (intento ${attempt}/${retries}):`, error.message);
-      
-      if (attempt === retries) {
-        throw error;
-      }
-      
+      if (attempt === retries) throw error;
       await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
     }
   }
 };
 
 // Configurar nodemailer
-const transporter = nodemailer.createTransport({
-  host: 'mail.jorgelaborda.es',
-  port: 465,
+const transporter = nodemailer.createTransporter({
+  host: process.env.SMTP_HOST || 'mail.jorgelaborda.es',
+  port: parseInt(process.env.SMTP_PORT) || 465,
   secure: true,
   connectionTimeout: 10000,
   socketTimeout: 10000,
@@ -185,38 +121,12 @@ const transporter = nodemailer.createTransport({
   }
 });
 
-// Función para limpiar timeouts activos
-const clearActiveTimeouts = () => {
-  activeTimeouts.forEach(timeoutId => {
-    clearTimeout(timeoutId);
-  });
-  activeTimeouts.clear();
-  console.log(`Limpiados ${activeTimeouts.size} timeouts activos`);
-};
-
-// Función para crear timeout trackeable
-const createSafeTimeout = (callback, delay) => {
-  if (isShuttingDown) return null;
-  
-  const timeoutId = setTimeout(() => {
-    activeTimeouts.delete(timeoutId);
-    if (!isShuttingDown) {
-      callback();
-    }
-  }, delay);
-  
-  activeTimeouts.add(timeoutId);
-  return timeoutId;
-};
-
 // Inicializar base de datos
 const initDatabase = async () => {
-  if (isShuttingDown) return;
-  
   try {
     console.log('Inicializando base de datos...');
     
-    // Crear tabla de usuarios
+    // Tabla de usuarios
     await safeQuery(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -230,7 +140,7 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
-    // Crear tabla de auditorías
+    // Tabla de auditorías
     await safeQuery(`
       CREATE TABLE IF NOT EXISTS audits (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -247,13 +157,29 @@ const initDatabase = async () => {
       ) ENGINE=InnoDB
     `);
 
+    // Tabla de análisis de logs
+    await safeQuery(`
+      CREATE TABLE IF NOT EXISTS log_analyses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        filename VARCHAR(255),
+        sitemap_url TEXT,
+        results JSON,
+        status ENUM('processing', 'completed', 'failed') DEFAULT 'processing',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_status (status),
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+      ) ENGINE=InnoDB
+    `);
+
     console.log('Base de datos inicializada correctamente');
   } catch (error) {
     console.error('Error inicializando base de datos:', error);
   }
 };
 
-// Middleware de autenticación JWT
+// Middleware de autenticación
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -295,7 +221,7 @@ const verifyCaptcha = async (captchaToken) => {
   return captchaToken === 'valid_captcha_token';
 };
 
-// Función para enviar email con timeout
+// Función para enviar email
 const sendVerificationEmail = async (email, token) => {
   const verificationUrl = `${BASE_URL}/verify-email/${token}`;
   
@@ -323,12 +249,7 @@ const sendVerificationEmail = async (email, token) => {
   };
 
   try {
-    const emailPromise = transporter.sendMail(mailOptions);
-    const timeoutPromise = new Promise((_, reject) => {
-      createSafeTimeout(() => reject(new Error('Email timeout')), 15000);
-    });
-    
-    await Promise.race([emailPromise, timeoutPromise]);
+    await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
     console.error('Error enviando email:', error.message);
@@ -336,14 +257,10 @@ const sendVerificationEmail = async (email, token) => {
   }
 };
 
-// ENDPOINTS
+// ENDPOINTS DE AUTENTICACIÓN
 
 // POST /api/register
 app.post('/api/register', authLimiter, registerValidation, async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
-  }
-
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -359,17 +276,12 @@ app.post('/api/register', authLimiter, registerValidation, async (req, res) => {
       return res.status(400).json({ error: 'CAPTCHA inválido' });
     }
 
-    const [existingUsers] = await safeQuery(
-      'SELECT id FROM users WHERE email = ?', 
-      [email]
-    );
-
+    const [existingUsers] = await safeQuery('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUsers.length > 0) {
       return res.status(400).json({ error: 'El email ya está registrado' });
     }
 
-    const saltRounds = 12;
-    const password_hash = await bcrypt.hash(password, saltRounds);
+    const password_hash = await bcrypt.hash(password, 12);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     await safeQuery(
@@ -393,10 +305,6 @@ app.post('/api/register', authLimiter, registerValidation, async (req, res) => {
 
 // GET /verify-email/:token
 app.get('/verify-email/:token', async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).send('Servidor en mantenimiento');
-  }
-
   const { token } = req.params;
 
   try {
@@ -427,10 +335,6 @@ app.get('/verify-email/:token', async (req, res) => {
 
 // POST /api/login
 app.post('/api/login', authLimiter, loginValidation, async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
-  }
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ 
@@ -452,7 +356,6 @@ app.post('/api/login', authLimiter, loginValidation, async (req, res) => {
     }
 
     const user = users[0];
-
     if (!user.verified) {
       return res.status(401).json({ 
         error: 'Email no verificado',
@@ -461,7 +364,6 @@ app.post('/api/login', authLimiter, loginValidation, async (req, res) => {
     }
 
     const validPassword = await bcrypt.compare(password, user.password_hash);
-    
     if (!validPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
@@ -474,10 +376,7 @@ app.post('/api/login', authLimiter, loginValidation, async (req, res) => {
 
     res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email
-      }
+      user: { id: user.id, email: user.email }
     });
   } catch (error) {
     console.error('Error en login:', error.message);
@@ -485,12 +384,10 @@ app.post('/api/login', authLimiter, loginValidation, async (req, res) => {
   }
 });
 
+// ENDPOINTS DE AUDITORÍAS SEO
+
 // POST /api/audit
 app.post('/api/audit', authenticateToken, auditValidation, async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
-  }
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ 
@@ -510,15 +407,9 @@ app.post('/api/audit', authenticateToken, auditValidation, async (req, res) => {
 
     const auditId = result.insertId;
 
-    // Procesamiento asíncrono mejorado
-    const processAudit = async () => {
-      if (isShuttingDown) return;
-      
+    // Procesamiento asíncrono simulado
+    setTimeout(async () => {
       try {
-        await new Promise(resolve => createSafeTimeout(resolve, 3000));
-        
-        if (isShuttingDown) return;
-
         const mockResults = {
           performance: {
             score: Math.floor(Math.random() * 40) + 60,
@@ -538,24 +429,18 @@ app.post('/api/audit', authenticateToken, auditValidation, async (req, res) => {
           }
         };
 
-        if (!isShuttingDown) {
-          await safeQuery(
-            'UPDATE audits SET results = ?, status = ? WHERE id = ?',
-            [JSON.stringify(mockResults), 'completed', auditId]
-          );
-        }
+        await safeQuery(
+          'UPDATE audits SET results = ?, status = ? WHERE id = ?',
+          [JSON.stringify(mockResults), 'completed', auditId]
+        );
       } catch (error) {
         console.error('Error procesando auditoría:', error.message);
-        if (!isShuttingDown) {
-          await safeQuery(
-            'UPDATE audits SET status = ? WHERE id = ?',
-            ['failed', auditId]
-          );
-        }
+        await safeQuery(
+          'UPDATE audits SET status = ? WHERE id = ?',
+          ['failed', auditId]
+        );
       }
-    };
-
-    processAudit().catch(err => console.error('Error en processAudit:', err.message));
+    }, 3000);
 
     res.status(201).json({
       message: 'Auditoría iniciada exitosamente',
@@ -570,10 +455,6 @@ app.post('/api/audit', authenticateToken, auditValidation, async (req, res) => {
 
 // GET /api/audits
 app.get('/api/audits', authenticateToken, async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
-  }
-
   const userId = req.user.id;
   const page = Math.max(1, parseInt(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
@@ -596,7 +477,6 @@ app.get('/api/audits', authenticateToken, async (req, res) => {
 
     const formattedAudits = audits.map(audit => {
       let config, results;
-      
       try {
         config = audit.config ? JSON.parse(audit.config) : {};
         results = audit.results ? JSON.parse(audit.results) : null;
@@ -606,11 +486,7 @@ app.get('/api/audits', authenticateToken, async (req, res) => {
         results = null;
       }
       
-      return {
-        ...audit,
-        config,
-        results
-      };
+      return { ...audit, config, results };
     });
 
     res.json({
@@ -630,10 +506,6 @@ app.get('/api/audits', authenticateToken, async (req, res) => {
 
 // GET /api/audit/:id
 app.get('/api/audit/:id', authenticateToken, async (req, res) => {
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
-  }
-
   const auditId = parseInt(req.params.id);
   const userId = req.user.id;
 
@@ -663,16 +535,199 @@ app.get('/api/audit/:id', authenticateToken, async (req, res) => {
       results = null;
     }
 
-    const formattedAudit = {
-      ...audit,
-      config,
-      results
-    };
-
-    res.json(formattedAudit);
+    res.json({ ...audit, config, results });
   } catch (error) {
     console.error('Error obteniendo auditoría:', error.message);
     res.status(500).json({ error: 'Error obteniendo auditoría' });
+  }
+});
+
+// ENDPOINTS PARA ANALIZADOR DE LOGS
+
+// Función para procesar archivo de log
+const processLogFile = async (analysisId, filePath, sitemapUrl) => {
+  try {
+    console.log(`Procesando análisis ${analysisId}: ${filePath}`);
+    
+    // Leer archivo
+    let content;
+    if (filePath.endsWith('.gz')) {
+      const compressed = await fs.readFile(filePath);
+      const decompressed = await gunzip(compressed);
+      content = decompressed.toString();
+    } else {
+      content = await fs.readFile(filePath, 'utf8');
+    }
+
+    // Parsear logs (implementación simplificada)
+    const lines = content.split('\n').filter(line => line.trim());
+    const logRegex = /^(\S+) \S+ \S+ \[(.*?)\] "(\S+) (.*?) (\S+)" (\d+) (\S+) "(.*?)" "(.*?)"$/;
+    
+    const data = [];
+    const botPatterns = [
+      /googlebot/i, /bingbot/i, /petalbot/i, /yandexbot/i, 
+      /bot|crawler|spider/i
+    ];
+
+    for (const line of lines.slice(0, 10000)) { // Limitar para evitar sobrecarga
+      const match = line.match(logRegex);
+      if (match) {
+        const [, ip, timestamp, method, url, protocol, status, size, referer, userAgent] = match;
+        const isBot = botPatterns.some(pattern => pattern.test(userAgent));
+        
+        data.push({
+          ip, timestamp, method, url, protocol,
+          status: parseInt(status),
+          size: size === '-' ? 0 : parseInt(size),
+          referer, userAgent, isBot
+        });
+      }
+    }
+
+    // Análisis básico
+    const stats = {
+      totalRequests: data.length,
+      botRequests: data.filter(entry => entry.isBot).length,
+      statusCodes: {},
+      topUrls: {},
+      topBots: {},
+      processedAt: new Date().toISOString()
+    };
+
+    data.forEach(entry => {
+      // Códigos de estado
+      stats.statusCodes[entry.status] = (stats.statusCodes[entry.status] || 0) + 1;
+      
+      // URLs más visitadas
+      stats.topUrls[entry.url] = (stats.topUrls[entry.url] || 0) + 1;
+      
+      // Bots
+      if (entry.isBot) {
+        const botName = getBotName(entry.userAgent);
+        stats.topBots[botName] = (stats.topBots[botName] || 0) + 1;
+      }
+    });
+
+    // Convertir a arrays ordenados
+    stats.topUrls = Object.entries(stats.topUrls)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 20)
+      .map(([url, count]) => ({ url, count }));
+
+    stats.topBots = Object.entries(stats.topBots)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 10)
+      .map(([bot, count]) => ({ bot, count }));
+
+    // Guardar resultados
+    await safeQuery(
+      'UPDATE log_analyses SET results = ?, status = ? WHERE id = ?',
+      [JSON.stringify(stats), 'completed', analysisId]
+    );
+
+    // Limpiar archivo temporal
+    await fs.unlink(filePath).catch(() => {}); // Ignorar errores de limpieza
+
+    console.log(`Análisis ${analysisId} completado`);
+  } catch (error) {
+    console.error(`Error procesando análisis ${analysisId}:`, error);
+    await safeQuery(
+      'UPDATE log_analyses SET status = ? WHERE id = ?',
+      ['failed', analysisId]
+    );
+  }
+};
+
+function getBotName(userAgent) {
+  if (/googlebot/i.test(userAgent)) return 'Googlebot';
+  if (/bingbot/i.test(userAgent)) return 'Bingbot';
+  if (/petalbot/i.test(userAgent)) return 'PetalBot';
+  if (/yandexbot/i.test(userAgent)) return 'YandexBot';
+  if (/bot|crawler|spider/i.test(userAgent)) return 'Generic Bot';
+  return 'Unknown Bot';
+}
+
+// POST /api/analyze-log - Subir y procesar archivo de log
+app.post('/api/analyze-log', authenticateToken, upload.single('logFile'), async (req, res) => {
+  const userId = req.user.id;
+  const { sitemapUrl } = req.body;
+
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se ha subido ningún archivo' });
+  }
+
+  try {
+    const [result] = await safeQuery(
+      'INSERT INTO log_analyses (user_id, filename, sitemap_url, status) VALUES (?, ?, ?, ?)',
+      [userId, req.file.originalname, sitemapUrl || null, 'processing']
+    );
+
+    const analysisId = result.insertId;
+
+    // Procesar archivo de forma asíncrona
+    processLogFile(analysisId, req.file.path, sitemapUrl).catch(err => 
+      console.error('Error procesando log:', err)
+    );
+
+    res.status(201).json({
+      message: 'Análisis de log iniciado',
+      analysisId,
+      status: 'processing'
+    });
+
+  } catch (error) {
+    console.error('Error creando análisis:', error);
+    res.status(500).json({ error: 'Error iniciando análisis' });
+  }
+});
+
+// GET /api/log-analyses - Obtener análisis del usuario
+app.get('/api/log-analyses', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const [analyses] = await safeQuery(
+      'SELECT id, filename, sitemap_url, status, created_at FROM log_analyses WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+      [userId]
+    );
+
+    res.json({ analyses });
+  } catch (error) {
+    console.error('Error obteniendo análisis:', error);
+    res.status(500).json({ error: 'Error obteniendo análisis' });
+  }
+});
+
+// GET /api/log-analysis/:id - Obtener resultado específico
+app.get('/api/log-analysis/:id', authenticateToken, async (req, res) => {
+  const analysisId = parseInt(req.params.id);
+  const userId = req.user.id;
+
+  try {
+    const [analyses] = await safeQuery(
+      'SELECT * FROM log_analyses WHERE id = ? AND user_id = ?',
+      [analysisId, userId]
+    );
+
+    if (analyses.length === 0) {
+      return res.status(404).json({ error: 'Análisis no encontrado' });
+    }
+
+    const analysis = analyses[0];
+    let results = null;
+    
+    if (analysis.results) {
+      try {
+        results = JSON.parse(analysis.results);
+      } catch (e) {
+        console.error('Error parsing results JSON:', e);
+      }
+    }
+
+    res.json({ ...analysis, results });
+  } catch (error) {
+    console.error('Error obteniendo análisis:', error);
+    res.status(500).json({ error: 'Error obteniendo análisis' });
   }
 });
 
@@ -682,10 +737,7 @@ app.get('/health', async (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
-    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-    activeConnections: activeConnections.size,
-    activeTimeouts: activeTimeouts.size,
-    isShuttingDown
+    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024)
   };
 
   try {
@@ -703,8 +755,11 @@ app.get('/health', async (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error no manejado:', err.message);
   
-  if (isShuttingDown) {
-    return res.status(503).json({ error: 'Servidor en mantenimiento' });
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'Archivo demasiado grande (máximo 100MB)' });
+    }
+    return res.status(400).json({ error: 'Error en la subida de archivo' });
   }
   
   res.status(500).json({ error: 'Error interno del servidor' });
@@ -715,66 +770,30 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint no encontrado' });
 });
 
-// Graceful shutdown
-const gracefulShutdown = (signal) => {
-  console.log(`Recibido ${signal}. Iniciando apagado graceful...`);
-  isShuttingDown = true;
-
-  server.close(() => {
-    console.log('Servidor HTTP cerrado');
-  });
-
-  console.log(`Limpiando ${activeTimeouts.size} timeouts activos...`);
-  clearActiveTimeouts();
-
-  setTimeout(() => {
-    console.log(`Cerrando ${activeConnections.size} conexiones DB...`);
-    
-    db.end((err) => {
-      if (err) {
-        console.error('Error cerrando pool MySQL:', err.message);
-      } else {
-        console.log('Pool MySQL cerrado correctamente');
-      }
-      
-      console.log('Proceso terminado limpiamente');
-      process.exit(0);
-    });
-  }, 5000);
-
-  setTimeout(() => {
-    console.log('Forzando terminación después de 10 segundos');
-    process.exit(1);
-  }, 10000);
-};
-
 // Inicializar servidor
 const server = app.listen(PORT, () => {
   console.log(`Servidor ejecutándose en puerto ${PORT}`);
-  console.log(`Configuración de email: ${EMAIL_USER}`);
-  console.log(`JWT Secret configurado: ${JWT_SECRET.length > 20 ? 'Sí' : 'Débil - cambiar en producción'}`);
-  console.log(`Base de datos MySQL: ${DB_HOST}:${DB_PORT}/${DB_NAME}`);
-  console.log(`Pool configurado: ${dbConfig.connectionLimit} conexiones max`);
+  console.log(`Base de datos MySQL: ${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`);
   
-  initDatabase().catch(err => console.error('Error post-init DB:', err.message));
+  initDatabase().catch(err => console.error('Error inicializando DB:', err.message));
 });
 
-// Configurar timeouts del servidor
-server.keepAliveTimeout = 30000;
-server.headersTimeout = 35000;
-
-// Event listeners para graceful shutdown
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-process.on('uncaughtException', (error) => {
-  console.error('Excepción no capturada:', error);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
+// Graceful shutdown simplificado
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recibido, cerrando servidor...');
+  server.close(() => {
+    db.end();
+    process.exit(0);
+  });
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Promesa rechazada no manejada:', reason);
+process.on('SIGINT', () => {
+  console.log('SIGINT recibido, cerrando servidor...');
+  server.close(() => {
+    db.end();
+    process.exit(0);
+  });
 });
-
 
 module.exports = app;
+
