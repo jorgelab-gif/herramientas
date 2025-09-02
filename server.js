@@ -544,91 +544,20 @@ app.get('/api/audit/:id', authenticateToken, async (req, res) => {
 
 // ENDPOINTS PARA ANALIZADOR DE LOGS
 
-// Función para procesar archivo de log
+// Función para procesar archivo de log usando el módulo completo
 const processLogFile = async (analysisId, filePath, sitemapUrl) => {
   try {
     console.log(`Procesando análisis ${analysisId}: ${filePath}`);
     
-    // Leer archivo
-    let content;
-    if (filePath.endsWith('.gz')) {
-      const compressed = await fs.readFile(filePath);
-      const decompressed = await gunzip(compressed);
-      content = decompressed.toString();
-    } else {
-      content = await fs.readFile(filePath, 'utf8');
-    }
-
-    // Parsear logs (implementación simplificada)
-    const lines = content.split('\n').filter(line => line.trim());
-    const logRegex = /^(\S+) \S+ \S+ \[(.*?)\] "(\S+) (.*?) (\S+)" (\d+) (\S+) "(.*?)" "(.*?)"$/;
+    const analizador = new AnalizadorLogs();
+    const resultados = await analizador.procesarAnalisisCompleto(filePath, sitemapUrl);
     
-    const data = [];
-    const botPatterns = [
-      /googlebot/i, /bingbot/i, /petalbot/i, /yandexbot/i, 
-      /bot|crawler|spider/i
-    ];
-
-    for (const line of lines.slice(0, 10000)) { // Limitar para evitar sobrecarga
-      const match = line.match(logRegex);
-      if (match) {
-        const [, ip, timestamp, method, url, protocol, status, size, referer, userAgent] = match;
-        const isBot = botPatterns.some(pattern => pattern.test(userAgent));
-        
-        data.push({
-          ip, timestamp, method, url, protocol,
-          status: parseInt(status),
-          size: size === '-' ? 0 : parseInt(size),
-          referer, userAgent, isBot
-        });
-      }
-    }
-
-    // Análisis básico
-    const stats = {
-      totalRequests: data.length,
-      botRequests: data.filter(entry => entry.isBot).length,
-      statusCodes: {},
-      topUrls: {},
-      topBots: {},
-      processedAt: new Date().toISOString()
-    };
-
-    data.forEach(entry => {
-      // Códigos de estado
-      stats.statusCodes[entry.status] = (stats.statusCodes[entry.status] || 0) + 1;
-      
-      // URLs más visitadas
-      stats.topUrls[entry.url] = (stats.topUrls[entry.url] || 0) + 1;
-      
-      // Bots
-      if (entry.isBot) {
-        const botName = getBotName(entry.userAgent);
-        stats.topBots[botName] = (stats.topBots[botName] || 0) + 1;
-      }
-    });
-
-    // Convertir a arrays ordenados
-    stats.topUrls = Object.entries(stats.topUrls)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 20)
-      .map(([url, count]) => ({ url, count }));
-
-    stats.topBots = Object.entries(stats.topBots)
-      .sort(([,a], [,b]) => b - a)
-      .slice(0, 10)
-      .map(([bot, count]) => ({ bot, count }));
-
-    // Guardar resultados
     await safeQuery(
       'UPDATE log_analyses SET results = ?, status = ? WHERE id = ?',
-      [JSON.stringify(stats), 'completed', analysisId]
+      [JSON.stringify(resultados.estadisticas), 'completed', analysisId]
     );
-
-    // Limpiar archivo temporal
-    await fs.unlink(filePath).catch(() => {}); // Ignorar errores de limpieza
-
-    console.log(`Análisis ${analysisId} completado`);
+    
+    console.log(`Análisis ${analysisId} completado exitosamente`);
   } catch (error) {
     console.error(`Error procesando análisis ${analysisId}:`, error);
     await safeQuery(
@@ -637,15 +566,6 @@ const processLogFile = async (analysisId, filePath, sitemapUrl) => {
     );
   }
 };
-
-function getBotName(userAgent) {
-  if (/googlebot/i.test(userAgent)) return 'Googlebot';
-  if (/bingbot/i.test(userAgent)) return 'Bingbot';
-  if (/petalbot/i.test(userAgent)) return 'PetalBot';
-  if (/yandexbot/i.test(userAgent)) return 'YandexBot';
-  if (/bot|crawler|spider/i.test(userAgent)) return 'Generic Bot';
-  return 'Unknown Bot';
-}
 
 // POST /api/analyze-log - Subir y procesar archivo de log
 app.post('/api/analyze-log', authenticateToken, upload.single('logFile'), async (req, res) => {
