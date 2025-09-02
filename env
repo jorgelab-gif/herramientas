@@ -19,7 +19,8 @@ SMTP_PORT=465
 
 # MySQL Database
 DB_HOST=localhost
-DB_NAME=zyhmsvac_herramientas_db
-DB_USER=zyhmsvac_herramientas_user
+DB_NAME=herramientas_db
+DB_USER=herramientas_user
 DB_PASS=Hrrmntseaiea21321*
+
 DB_PORT=3306
