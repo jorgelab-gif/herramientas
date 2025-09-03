@@ -108,7 +108,7 @@ const safeQuery = async (query, params = [], retries = 2) => {
 };
 
 // Configurar nodemailer
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'mail.jorgelaborda.es',
   port: parseInt(process.env.SMTP_PORT) || 465,
   secure: true,
@@ -715,5 +715,6 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
