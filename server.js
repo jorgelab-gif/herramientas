@@ -551,7 +551,9 @@ const processLogFile = async (analysisId, filePath, sitemapUrl) => {
     
     const analizador = new AnalizadorLogs();
     const resultados = await analizador.procesarAnalisisCompleto(filePath, sitemapUrl);
-    
+
+console.log('Tipo de resultados:', typeof resultados);
+console.log('Resultados:', resultados);    
 await safeQuery(
   'UPDATE log_analyses SET results = ?, status = ? WHERE id = ?',
   [JSON.stringify(resultados), 'completed', analysisId]
@@ -638,7 +640,9 @@ app.get('/api/log-analysis/:id', authenticateToken, async (req, res) => {
     
     if (analysis.results) {
       try {
-        results = JSON.parse(analysis.results);
+        console.log('Tipo de analysis.results:', typeof analysis.results);
+console.log('Contenido analysis.results:', analysis.results);
+results = JSON.parse(analysis.results);
       } catch (e) {
         console.error('Error parsing results JSON:', e);
       }
@@ -716,6 +720,7 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
 
