@@ -639,14 +639,18 @@ app.get('/api/log-analysis/:id', authenticateToken, async (req, res) => {
     let results = null;
     
     if (analysis.results) {
-      try {
-        console.log('Tipo de analysis.results:', typeof analysis.results);
-console.log('Contenido analysis.results:', analysis.results);
-results = JSON.parse(analysis.results);
-      } catch (e) {
-        console.error('Error parsing results JSON:', e);
-      }
+  try {
+    // Para JSONs muy grandes, verificar si ya es un objeto
+    if (typeof analysis.results === 'object') {
+      results = analysis.results;
+    } else {
+      results = JSON.parse(analysis.results);
     }
+  } catch (e) {
+    console.error('Error parsing results JSON:', e);
+    results = null;
+  }
+}
 
     res.json({ ...analysis, results });
   } catch (error) {
@@ -720,6 +724,7 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
 
