@@ -552,10 +552,21 @@ const processLogFile = async (analysisId, filePath, sitemapUrl) => {
     const analizador = new AnalizadorLogs();
     const resultados = await analizador.procesarAnalisisCompleto(filePath, sitemapUrl);
     
-    await safeQuery(
-      'UPDATE log_analyses SET results = ?, status = ? WHERE id = ?',
-      [JSON.stringify(resultados.estadisticas), 'completed', analysisId]
-    );
+await safeQuery(
+  'UPDATE log_analyses SET results = ?, status = ? WHERE id = ?',
+  [JSON.stringify(resultados), 'completed', analysisId]
+);
+El módulo AnalizadorLogs ya devuelve un objeto con resultados.estadisticas, pero necesitamos guardar todo el objeto resultados, no solo la parte de estadísticas.
+
+Haz este cambio en GitHub y después:
+
+bash
+git pull origin main
+pm2 restart herramientas-backend
+Esto debería resolver el error de parsing JSON y mostrar los resultados correctamente en la interfaz.
+
+
+
     
     console.log(`Análisis ${analysisId} completado exitosamente`);
   } catch (error) {
@@ -716,6 +727,7 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
 
