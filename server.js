@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const { body, validationResult } = require('express-validator');
 const crypto = require('crypto');
 const multer = require('multer');
+const AnalizadorLogs = require('./lib/analizador-logs');
 const fs = require('fs').promises;
 const zlib = require('zlib');
 const { promisify } = require('util');
@@ -715,6 +716,7 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
 
