@@ -18,7 +18,7 @@ const { promisify } = require('util');
 const gunzip = promisify(zlib.gunzip);
 
 const app = express();
-app.set('trust proxy', true); // Para Nginx reverse proxy
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // Configuración
@@ -716,6 +716,7 @@ process.on('SIGINT', () => {
 });
 
 module.exports = app;
+
 
 
 
