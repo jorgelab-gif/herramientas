@@ -1,0 +1,291 @@
+<!-- ======================== LOGIN.HTML ======================== -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión - Herramientas SEO</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Honeypot anti-bot */
+        .honeypot {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Mensajes de estado */
+        .message {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.loading {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        /* Deshabilitado durante envío */
+        .form-disabled {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        /* Captcha matemático */
+        .math-captcha {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .math-captcha input {
+            width: 80px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="page-herramientas-login">
+    
+    <!-- NAVIGATION -->
+    <nav class="herramientas-nav">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">🔧 Herramientas SEO</a>
+            </div>
+            <div class="nav-links">
+                <a href="register.html" class="nav-link">Crear Cuenta</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOGIN FORM -->
+    <section class="herramientas-auth-section">
+        <div class="container">
+            <div class="herramientas-auth-container">
+                
+                <div class="auth-header">
+                    <h1>Iniciar Sesión</h1>
+                    <p>Accede a tus auditorías SEO</p>
+                </div>
+
+                <!-- Mensajes de estado -->
+                <div id="message" class="message"></div>
+
+                <form id="loginForm" class="herramientas-auth-form">
+                    
+                    <!-- Campo honeypot anti-bot (oculto) -->
+                    <input type="text" name="website" class="honeypot" tabindex="-1" autocomplete="off">
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+
+                    <!-- CAPTCHA Matemático anti-bot -->
+                    <div class="form-group">
+                        <label>Verificación anti-bot</label>
+                        <div class="math-captcha">
+                            <span id="mathQuestion">5 + 3 = </span>
+                            <input type="number" id="mathAnswer" name="mathAnswer" required min="0" max="20">
+                        </div>
+                        <small>Resuelve la operación matemática</small>
+                    </div>
+
+                    <!-- Honeypot adicional - checkbox oculto -->
+                    <div class="honeypot">
+                        <input type="checkbox" name="newsletter" tabindex="-1">
+                        <label>Suscribirse al newsletter</label>
+                    </div>
+
+                    <button type="submit" class="herramientas-cta-primary">
+                        <span class="btn-text">Iniciar Sesión</span>
+                        <span class="btn-loading" style="display:none;">Iniciando sesión...</span>
+                    </button>
+
+                    <div class="auth-links">
+                        <p>¿No tienes cuenta? <a href="register.html">Regístrate aquí</a></p>
+                        <a href="#" class="forgot-link">¿Olvidaste tu contraseña?</a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="herramientas-footer">
+        <div class="container">
+            <p>Creado con ❤️ por <a href="https://jorgelaborda.es" target="_blank">jorgelaborda.es</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuración
+        const API_BASE = 'https://herramientas.jorgelaborda.es/api';
+        
+        // Variables para anti-bot
+        let mathAnswer = 0;
+        let formStartTime = Date.now();
+        
+        // Generar pregunta matemática aleatoria
+        function generateMathCaptcha() {
+            const num1 = Math.floor(Math.random() * 10) + 1;
+            const num2 = Math.floor(Math.random() * 10) + 1;
+            mathAnswer = num1 + num2;
+            document.getElementById('mathQuestion').textContent = `${num1} + ${num2} = `;
+        }
+        
+        // Mostrar mensaje
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            // Auto-hide después de 5 segundos (excepto loading)
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+        
+        // Validación del formulario
+        function validateForm(formData) {
+            const email = formData.get('email');
+            const password = formData.get('password');
+            const mathInput = parseInt(formData.get('mathAnswer'));
+            
+            // Verificaciones anti-bot
+            const timeTaken = Date.now() - formStartTime;
+            if (timeTaken < 2000) {
+                return 'Formulario enviado demasiado rápido. Por favor, tómate tu tiempo.';
+            }
+            
+            // Honeypot checks
+            if (formData.get('website') || formData.get('newsletter')) {
+                return 'Detección de bot. Acceso denegado.';
+            }
+            
+            // Validaciones básicas
+            if (!email || !password) {
+                return 'Email y contraseña son obligatorios.';
+            }
+            
+            if (mathInput !== mathAnswer) {
+                return 'Respuesta matemática incorrecta. Por favor, intenta de nuevo.';
+            }
+            
+            return null; // Sin errores
+        }
+        
+        // Manejar envío del formulario
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const form = this;
+            const formData = new FormData(form);
+            
+            // Validar formulario
+            const validationError = validateForm(formData);
+            if (validationError) {
+                showMessage(validationError, 'error');
+                generateMathCaptcha(); // Nueva pregunta si falla
+                document.getElementById('mathAnswer').value = '';
+                return;
+            }
+            
+            // Deshabilitar formulario durante envío
+            form.classList.add('form-disabled');
+            document.querySelector('.btn-text').style.display = 'none';
+            document.querySelector('.btn-loading').style.display = 'inline';
+            showMessage('Iniciando sesión...', 'loading');
+            
+            try {
+                // Enviar al backend
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: formData.get('email'),
+                        password: formData.get('password')
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Éxito - guardar token y redirigir
+                    localStorage.setItem('authToken', result.token);
+                    localStorage.setItem('userEmail', result.user.email);
+                    localStorage.setItem('userId', result.user.id);
+                    
+                    showMessage('¡Inicio de sesión exitoso! Redirigiendo...', 'success');
+                    
+                    // Redirigir al dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else {
+                    // Error del servidor
+                    let errorMessage = result.error || 'Error al iniciar sesión. Por favor, intenta de nuevo.';
+                    
+                    // Mensajes específicos
+                    if (result.error === 'Email no verificado') {
+                        errorMessage += ' Revisa tu email y haz clic en el enlace de verificación.';
+                    }
+                    
+                    showMessage(errorMessage, 'error');
+                    generateMathCaptcha();
+                    document.getElementById('mathAnswer').value = '';
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error de conexión. Por favor, verifica tu conexión a internet e intenta de nuevo.', 'error');
+                generateMathCaptcha();
+                document.getElementById('mathAnswer').value = '';
+            } finally {
+                // Rehabilitar formulario
+                form.classList.remove('form-disabled');
+                document.querySelector('.btn-text').style.display = 'inline';
+                document.querySelector('.btn-loading').style.display = 'none';
+                formStartTime = Date.now(); // Reset timer
+            }
+        });
+        
+        // Inicializar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            generateMathCaptcha();
+            
+            // Si ya está logueado, redirigir
+            if (localStorage.getItem('authToken')) {
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+
+</body>
+</html>

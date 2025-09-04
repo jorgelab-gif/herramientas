@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Logs - Herramientas SEO</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        .upload-zone {
+            border: 3px dashed #10b981;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            background: var(--negro-secundario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 2rem 0;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--verde-hover);
+            background: var(--negro-terciario);
+        }
+        
+        .upload-zone.file-selected {
+            border-color: var(--verde-principal);
+            background: var(--verde-oscuro);
+        }
+        
+        .progress-section {
+            display: none;
+            background: var(--negro-secundario);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--negro-principal);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--verde-principal), var(--verde-hover));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .results-section {
+            display: none;
+            margin: 2rem 0;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .chart-container {
+            background: var(--negro-secundario);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+        }
+        
+        .table-container {
+            background: var(--negro-secundario);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .table-header {
+            background: var(--verde-principal);
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--borde-principal);
+            color: var(--gris-claro);
+        }
+        
+        th {
+            background: var(--negro-terciario);
+            font-weight: 600;
+        }
+        
+        .error-message {
+            background: #dc2626;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+        
+        .stat-card {
+            background: var(--negro-secundario);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--borde-principal);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--verde-principal);
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--verde-principal);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--gris-claro);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .success-message {
+            background: var(--verde-principal);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="herramientas-nav">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="/" class="brand-link">🔧 Herramientas SEO</a>
+            </div>
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link">Panel de Control</a>
+                <span class="user-welcome">Hola, <strong id="userEmail">Usuario</strong></span>
+                <a href="#" onclick="cerrarSesion()" class="nav-link">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="herramientas-audit-section">
+        <div class="container">
+            <div class="audit-header">
+                <h1>📊 Analizador de Logs Apache</h1>
+                <p>Análisis completo de logs con comparativa de sitemap y optimización de crawl budget</p>
+            </div>
+
+            <div class="audit-container">
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+
+                <!-- Formulario de subida -->
+                <div id="uploadForm" class="audit-form">
+                    <div class="form-group">
+                        <label>Archivo de Log del Servidor</label>
+                        <div class="upload-zone" onclick="document.getElementById('logFile').click()" id="uploadZone">
+                            <div id="uploadText">
+                                <h3>📄 Arrastra tu archivo de log aquí</h3>
+                                <p>O haz clic para seleccionar archivo</p>
+                                <small>Formatos soportados: .log, .gz (máximo 100MB)</small>
+                            </div>
+                        </div>
+                        <input type="file" id="logFile" accept=".log,.gz" style="display: none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sitemapUrl">URL del Sitemap (Opcional)</label>
+                        <input type="url" id="sitemapUrl" placeholder="https://tudominio.com/sitemap.xml">
+                        <small>Para análisis comparativo entre sitemap y crawling real</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" onclick="iniciarAnalisis()" class="herramientas-cta-primary" id="analyzeBtn" disabled>
+                            🚀 Iniciar Análisis
+                        </button>
+                        <a href="dashboard.html" class="herramientas-cta-secondary">Volver al Panel</a>
+                    </div>
+                </div>
+
+                <!-- Sección de progreso -->
+                <div id="progressSection" class="progress-section">
+                    <h3>🔄 Procesando análisis...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">Iniciando análisis...</p>
+                </div>
+
+                <!-- Resultados -->
+                <div id="resultsSection" class="results-section">
+                    <h2>📈 Resultados del Análisis</h2>
+                    
+                    <div class="stats-summary" id="statsSummary">
+                        <!-- Las estadísticas se insertarán aquí -->
+                    </div>
+
+                    <div class="chart-container">
+                        <h3>Distribución de Códigos de Estado HTTP</h3>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3>Actividad de Bots vs Usuarios</h3>
+                        <canvas id="botsChart"></canvas>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">🔍 URLs Más Crawleadas</div>
+                        <table id="topUrlsTable">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Visitas</th>
+                                    <th>Crawleada por Bots</th>
+                                    <th>En Sitemap</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">🤖 Actividad de Bots</div>
+                        <table id="botsTable">
+                            <thead>
+                                <tr>
+                                    <th>Bot</th>
+                                    <th>Peticiones</th>
+                                    <th>% del Total</th>
+                                    <th>URLs Únicas</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="form-actions">
+                        <button onclick="nuevoAnalisis()" class="herramientas-cta-primary">Nuevo Análisis</button>
+                        <button onclick="verHistorial()" class="herramientas-cta-secondary">Ver Historial</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="herramientas-footer">
+        <div class="container">
+            <p>Creado con ❤️ por <a href="https://jorgelaborda.es" target="_blank">jorgelaborda.es</a></p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE = 'https://herramientas.jorgelaborda.es/api';
+        let archivoSeleccionado = null;
+        let analisisId = null;
+
+        // Verificar autenticación
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!estaAutenticado()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            mostrarEmailUsuario();
+            configurarEventos();
+            configurarEventosRed();
+        });
+
+        function configurarEventosRed() {
+            // Detectar pérdida/recuperación de conexión
+            window.addEventListener('online', function() {
+                mostrarExito('Conexión a internet restaurada');
+            });
+
+            window.addEventListener('offline', function() {
+                mostrarError('Sin conexión a internet. Revisa tu conexión de red.');
+            });
+        }
+
+        function estaAutenticado() {
+            return localStorage.getItem('authToken') && localStorage.getItem('userEmail');
+        }
+
+        function mostrarEmailUsuario() {
+            const email = localStorage.getItem('userEmail');
+            document.getElementById('userEmail').textContent = email || 'Usuario';
+        }
+
+        function configurarEventos() {
+            const logFile = document.getElementById('logFile');
+            const uploadZone = document.getElementById('uploadZone');
+
+            logFile.addEventListener('change', manejarSeleccionArchivo);
+
+            // Drag and drop
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const archivos = e.dataTransfer.files;
+                if (archivos.length > 0) {
+                    logFile.files = archivos;
+                    manejarSeleccionArchivo({ target: { files: archivos } });
+                }
+            });
+        }
+
+        function manejarSeleccionArchivo(event) {
+            const archivo = event.target.files[0];
+            if (!archivo) return;
+
+            // Validaciones del archivo
+            const tiposPermitidos = ['.log', '.gz', '.txt'];
+            const extension = '.' + archivo.name.split('.').pop().toLowerCase();
+            
+            if (!tiposPermitidos.includes(extension) && !archivo.name.includes('access.log') && !archivo.name.includes('error.log')) {
+                mostrarError('Formato de archivo no válido. Use archivos .log, .gz o .txt');
+                return;
+            }
+
+            const tamañoMaximo = 100 * 1024 * 1024; // 100MB
+            if (archivo.size > tamañoMaximo) {
+                mostrarError('El archivo es demasiado grande. Máximo 100MB permitido');
+                return;
+            }
+
+            archivoSeleccionado = archivo;
+            const uploadZone = document.getElementById('uploadZone');
+            const uploadText = document.getElementById('uploadText');
+
+            uploadZone.classList.add('file-selected');
+            uploadText.innerHTML = `
+                <h3>✅ Archivo Seleccionado</h3>
+                <p><strong>${archivo.name}</strong></p>
+                <small>${(archivo.size / 1024 / 1024).toFixed(2)} MB</small>
+            `;
+
+            document.getElementById('analyzeBtn').disabled = false;
+            mostrarExito('Archivo válido seleccionado correctamente');
+        }
+
+        async function iniciarAnalisis() {
+            if (!archivoSeleccionado) {
+                mostrarError('Selecciona un archivo de log primero');
+                return;
+            }
+
+            const sitemapUrl = document.getElementById('sitemapUrl').value.trim();
+            
+            // Validar URL del sitemap si se proporcionó
+            if (sitemapUrl && !esUrlValida(sitemapUrl)) {
+                mostrarError('URL del sitemap no es válida');
+                return;
+            }
+
+            try {
+                // Ocultar formulario y mostrar progreso
+                document.getElementById('uploadForm').style.display = 'none';
+                document.getElementById('progressSection').style.display = 'block';
+
+                // Preparar FormData
+                const formData = new FormData();
+                formData.append('logFile', archivoSeleccionado);
+                if (sitemapUrl) {
+                    formData.append('sitemapUrl', sitemapUrl);
+                }
+
+                actualizarProgreso(10, 'Subiendo archivo al servidor...');
+
+                // Enviar archivo
+                const respuesta = await fetch(`${API_BASE}/analyze-log`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: formData
+                });
+
+                if (!respuesta.ok) {
+                    const error = await respuesta.json();
+                    throw new Error(error.error || 'Error iniciando análisis');
+                }
+
+                const resultado = await respuesta.json();
+                analisisId = resultado.analysisId;
+
+                actualizarProgreso(20, 'Análisis iniciado correctamente...');
+                
+                // Comenzar polling para estado
+                esperarResultados();
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError(error.message);
+                volverAFormulario();
+            }
+        }
+
+        function esUrlValida(url) {
+            try {
+                new URL(url);
+                return url.startsWith('http://') || url.startsWith('https://');
+            } catch {
+                return false;
+            }
+        }
+
+        async function esperarResultados() {
+            const maxIntentos = 60; // 5 minutos máximo
+            let intentos = 0;
+
+            const intervalo = setInterval(async () => {
+                try {
+                    intentos++;
+                    const porcentaje = 20 + ((intentos / maxIntentos) * 70); // De 20% a 90%
+                    actualizarProgreso(porcentaje, `Procesando archivo... (${intentos}/${maxIntentos})`);
+
+                    const respuesta = await fetch(`${API_BASE}/log-analysis/${analisisId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        }
+                    });
+
+                    if (!respuesta.ok) {
+                        if (respuesta.status === 401) {
+                            throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente');
+                        }
+                        throw new Error('Error consultando estado del análisis');
+                    }
+
+                    const analisis = await respuesta.json();
+
+                    if (analisis.status === 'completed') {
+                        clearInterval(intervalo);
+                        actualizarProgreso(100, 'Análisis completado exitosamente');
+                        setTimeout(() => mostrarResultados(analisis.results), 1000);
+                    } else if (analisis.status === 'failed') {
+                        clearInterval(intervalo);
+                        throw new Error('El análisis falló en el servidor: ' + (analisis.error || 'Error desconocido'));
+                    }
+
+                    if (intentos >= maxIntentos) {
+                        clearInterval(intervalo);
+                        throw new Error('Timeout: el análisis está tardando más de lo esperado. Inténtalo más tarde.');
+                    }
+
+                } catch (error) {
+                    clearInterval(intervalo);
+                    console.error('Error durante análisis:', error);
+                    mostrarError(error.message);
+                    volverAFormulario();
+                }
+            }, 5000);
+        }
+
+        function actualizarProgreso(porcentaje, texto) {
+            document.getElementById('progressFill').style.width = porcentaje + '%';
+            document.getElementById('progressText').textContent = texto;
+        }
+
+        function mostrarResultados(estadisticas) {
+            // Verificar que tenemos datos válidos
+            if (!estadisticas || typeof estadisticas !== 'object') {
+                mostrarError('Los resultados del análisis no son válidos');
+                volverAFormulario();
+                return;
+            }
+
+            // Ocultar progreso y mostrar resultados
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            // Mostrar estadísticas resumidas
+            mostrarEstadisticasResumidas(estadisticas);
+
+            // Crear gráficos
+            crearGraficos(estadisticas);
+
+            // Llenar tablas
+            llenarTablas(estadisticas);
+            
+            // Mostrar mensaje de éxito
+            mostrarExito('Análisis completado exitosamente');
+        }
+
+        function mostrarEstadisticasResumidas(stats) {
+            const summary = document.getElementById('statsSummary');
+            summary.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalPeticiones?.toLocaleString() || 0}</div>
+                    <div class="stat-label">Total Peticiones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.peticionesBots?.toLocaleString() || 0}</div>
+                    <div class="stat-label">Peticiones de Bots</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${Object.keys(stats.estadisticasUrl || {}).length}</div>
+                    <div class="stat-label">URLs Únicas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${Object.keys(stats.estadisticasBots || {}).length}</div>
+                    <div class="stat-label">Bots Detectados</div>
+                </div>
+            `;
+        }
+
+        function crearGraficos(stats) {
+            // Gráfico de códigos de estado
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.codigosEstado || {}),
+                    datasets: [{
+                        data: Object.values(stats.codigosEstado || {}),
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+                    }]
+                }
+            });
+
+            // Gráfico de bots vs usuarios
+            const botsCtx = document.getElementById('botsChart').getContext('2d');
+            new Chart(botsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Bots', 'Usuarios'],
+                    datasets: [{
+                        data: [stats.peticionesBots || 0, (stats.totalPeticiones || 0) - (stats.peticionesBots || 0)],
+                        backgroundColor: ['#ef4444', '#10b981']
+                    }]
+                }
+            });
+        }
+
+        function llenarTablas(stats) {
+            // Tabla de URLs
+            const urlsTable = document.querySelector('#topUrlsTable tbody');
+            urlsTable.innerHTML = '';
+            
+            Object.entries(stats.estadisticasUrl || {})
+                .sort(([,a], [,b]) => b.conteo - a.conteo)
+                .slice(0, 10)
+                .forEach(([url, data]) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${url}</td>
+                        <td>${data.conteo}</td>
+                        <td>${data.crawleadaPorBots || 0}</td>
+                        <td>${data.enSitemap === true ? '✅' : data.enSitemap === false ? '❌' : 'N/A'}</td>
+                    `;
+                    urlsTable.appendChild(tr);
+                });
+
+            // Tabla de bots
+            const botsTable = document.querySelector('#botsTable tbody');
+            botsTable.innerHTML = '';
+            
+            Object.entries(stats.estadisticasBots || {})
+                .sort(([,a], [,b]) => b.conteo - a.conteo)
+                .slice(0, 10)
+                .forEach(([bot, data]) => {
+                    const porcentaje = ((data.conteo / stats.totalPeticiones) * 100).toFixed(1);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${bot}</td>
+                        <td>${data.conteo}</td>
+                        <td>${porcentaje}%</td>
+                        <td>${data.urlsUnicas?.length || 0}</td>
+                    `;
+                    botsTable.appendChild(tr);
+                });
+        }
+
+        function mostrarError(mensaje) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            // Ocultar mensaje de éxito si está visible
+            successDiv.style.display = 'none';
+            
+            errorDiv.textContent = mensaje;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 8000);
+        }
+
+        function mostrarExito(mensaje) {
+            const successDiv = document.getElementById('successMessage');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // Ocultar mensaje de error si está visible
+            errorDiv.style.display = 'none';
+            
+            successDiv.textContent = mensaje;
+            successDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function volverAFormulario() {
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('uploadForm').style.display = 'block';
+        }
+
+        function nuevoAnalisis() {
+            // Confirmar acción si hay resultados visibles
+            if (document.getElementById('resultsSection').style.display === 'block') {
+                if (!confirm('¿Estás seguro de que quieres iniciar un nuevo análisis? Se perderán los resultados actuales.')) {
+                    return;
+                }
+            }
+
+            volverAFormulario();
+            
+            // Resetear formulario
+            archivoSeleccionado = null;
+            analisisId = null;
+            document.getElementById('logFile').value = '';
+            document.getElementById('sitemapUrl').value = '';
+            document.getElementById('uploadZone').classList.remove('file-selected');
+            document.getElementById('uploadText').innerHTML = `
+                <h3>📄 Arrastra tu archivo de log aquí</h3>
+                <p>O haz clic para seleccionar archivo</p>
+                <small>Formatos soportados: .log, .gz (máximo 100MB)</small>
+            `;
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            // Limpiar mensajes
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            
+            mostrarExito('Formulario reseteado. Puedes seleccionar un nuevo archivo.');
+        }
+
+        function verHistorial() {
+            // Guardar información del análisis actual si existe
+            if (analisisId) {
+                const analisisActual = {
+                    id: analisisId,
+                    fecha: new Date().toISOString(),
+                    archivo: archivoSeleccionado ? archivoSeleccionado.name : 'Archivo desconocido'
+                };
+                
+                let historial = JSON.parse(localStorage.getItem('logAnalysisHistory') || '[]');
+                historial.unshift(analisisActual);
+                
+                // Mantener solo los últimos 10 análisis
+                historial = historial.slice(0, 10);
+                localStorage.setItem('logAnalysisHistory', JSON.stringify(historial));
+            }
+            
+            window.location.href = 'dashboard.html';
+        }
+
+        function cerrarSesion() {
+            if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                try {
+                    // Limpiar todo el almacenamiento local
+                    localStorage.clear();
+                    
+                    // Mostrar mensaje de despedida
+                    mostrarExito('Sesión cerrada correctamente. Redirigiendo...');
+                    
+                    // Redireccionar después de un breve delay
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Error cerrando sesión:', error);
+                    // Forzar redirección aunque haya error
+                    window.location.href = 'login.html';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

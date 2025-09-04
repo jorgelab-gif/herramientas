@@ -1,0 +1,25 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/zyhmsvac/herramientas-backend"
+PassengerBaseURI "/"
+PassengerNodejs "/home/zyhmsvac/nodevenv/herramientas-backend/20/bin/node"
+PassengerAppType node
+PassengerStartupFile server.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv BASE_URL https://herramientas.jorgelaborda.es
+SetEnv EMAIL_PASS Hrrmntseaiea21321*
+SetEnv EMAIL_USER herramientas@jorgelaborda.es
+SetEnv FRONTEND_URL https://herramientas.jorgelaborda.es
+SetEnv JWT 45c9d77913188d958f2640ab6f51744350ed5d8fbb02af16c76e58abb122d67a9047240c99f02ca9b9fb6d3234acdc7d25105738a119887298eb983f6f5cd58d
+SetEnv NODE_ENV production
+SetEnv PORT 3000
+SetEnv SMTP_HOST mail.jorgelaborda.es
+SetEnv SMTP_PORT 465
+SetEnv DB_HOST localhost
+SetEnv DB_NAME zyhmsvac_herramientas_db
+SetEnv DB_USER zyhmsvac_herramientas_user
+SetEnv DB_PASS Hrrmntseaiea21321*
+SetEnv DB_PORT 3306
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END

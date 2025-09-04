@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Integrado - Herramientas SEO</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        /* Estilos compartidos para el dashboard */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            background: #dc2626;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+        
+        .stat-card.loading {
+            opacity: 0.6;
+        }
+        
+        .audit-item.skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .user-welcome {
+            color: #666;
+            margin-right: 15px;
+        }
+        
+        .logout-btn {
+            color: #dc3545;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        
+        .logout-btn:hover {
+            color: #c82333;
+            text-decoration: underline;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 10px;
+        }
+
+        /* Estilos para el sistema de tabs */
+        .tabs-container {
+            background: var(--negro-secundario);
+            border-radius: 12px 12px 0 0;
+            margin-top: 2rem;
+        }
+        
+        .tabs-nav {
+            display: flex;
+            border-bottom: 2px solid var(--borde-principal);
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 1rem 2rem;
+            background: transparent;
+            border: none;
+            color: var(--gris-claro);
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .tab-button:hover {
+            background: var(--negro-terciario);
+        }
+        
+        .tab-button.active {
+            background: var(--verde-principal);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            background: var(--negro-secundario);
+            border-radius: 0 0 12px 12px;
+            min-height: 600px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Estilos específicos del analizador de logs */
+        .upload-zone {
+            border: 3px dashed #10b981;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            background: var(--negro-terciario);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 2rem 0;
+        }
+        
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--verde-hover);
+            background: var(--negro-principal);
+        }
+        
+        .upload-zone.file-selected {
+            border-color: var(--verde-principal);
+            background: var(--verde-oscuro);
+        }
+        
+        .progress-section {
+            display: none;
+            background: var(--negro-terciario);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--negro-principal);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--verde-principal), var(--verde-hover));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .results-section {
+            display: none;
+            margin: 2rem 0;
+        }
+        
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .chart-container {
+            background: var(--negro-terciario);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+        }
+        
+        .table-container {
+            background: var(--negro-terciario);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .table-header {
+            background: var(--verde-principal);
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--borde-principal);
+            color: var(--gris-claro);
+        }
+        
+        th {
+            background: var(--negro-principal);
+            font-weight: 600;
+        }
+
+        /* Responsividad para tabs */
+        @media (max-width: 768px) {
+            .tabs-nav {
+                flex-direction: column;
+            }
+            
+            .tab-button {
+                border-radius: 0;
+            }
+            
+            .tab-button:first-child {
+                border-radius: 12px 12px 0 0;
+            }
+            
+            .tab-content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="page-herramientas-dashboard">
+    
+    <!-- NAVIGATION -->
+    <nav class="herramientas-nav herramientas-nav-logged">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="dashboard-integrado.html" class="brand-link">🔧 Herramientas SEO</a>
+            </div>
+            <div class="nav-links">
+                <span class="user-welcome">
+                    Hola, <strong id="userEmail">Cargando...</strong>
+                </span>
+                <a href="#" class="logout-btn" onclick="logout()">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Error message container -->
+    <div class="container">
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+
+    <!-- DASHBOARD HERO -->
+    <section class="herramientas-dashboard-hero">
+        <div class="container">
+            <h1>Panel de Control Integrado</h1>
+            <p>Gestiona tus auditorías SEO y análisis de logs desde un solo lugar</p>
+        </div>
+    </section>
+
+    <!-- CONTENEDOR PRINCIPAL CON TABS -->
+    <section class="container">
+        <div class="tabs-container">
+            <div class="tabs-nav">
+                <button class="tab-button active" onclick="switchTab('dashboard')">
+                    📊 Panel de Control
+                </button>
+                <button class="tab-button" onclick="switchTab('logs')">
+                    📈 Analizador de Logs
+                </button>
+            </div>
+
+            <!-- TAB 1: Dashboard Principal -->
+            <div id="dashboardTab" class="tab-content active">
+                <!-- STATS SECTION -->
+                <div class="stats-grid">
+                    <div class="stat-card" id="totalAudits">
+                        <div class="stat-number">
+                            <span class="loading"></span>
+                        </div>
+                        <div class="stat-label">Auditorías realizadas</div>
+                    </div>
+                    
+                    <div class="stat-card" id="completedAudits">
+                        <div class="stat-number">
+                            <span class="loading"></span>
+                        </div>
+                        <div class="stat-label">Completadas</div>
+                    </div>
+                    
+                    <div class="stat-card" id="pendingAudits">
+                        <div class="stat-number">
+                            <span class="loading"></span>
+                        </div>
+                        <div class="stat-label">En proceso</div>
+                    </div>
+                    
+                    <div class="stat-card" id="avgScore">
+                        <div class="stat-number">
+                            <span class="loading"></span>
+                        </div>
+                        <div class="stat-label">Puntuación promedio</div>
+                    </div>
+                </div>
+
+                <!-- NUEVA AUDITORÍA -->
+                <div style="margin: 2rem 0; text-align: center;">
+                    <button onclick="createNewAudit()" class="herramientas-cta-primary herramientas-cta-large">
+                        🚀 Nueva Auditoría
+                    </button>
+                </div>
+
+                <!-- RECENT AUDITS -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 class="section-title">Auditorías Recientes</h2>
+                        <button onclick="refreshAudits()" class="herramientas-cta-secondary">
+                            Actualizar
+                        </button>
+                    </div>
+                    
+                    <div id="auditsList" class="audits-list">
+                        <!-- Loading skeletons -->
+                        <div class="audit-item skeleton">
+                            <div class="audit-info">
+                                <h3>&nbsp;</h3>
+                                <p>&nbsp;</p>
+                                <span class="audit-date">&nbsp;</span>
+                            </div>
+                            <div class="audit-status">
+                                <span class="status-badge">&nbsp;</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="load-more">
+                        <button onclick="loadMoreAudits()" class="herramientas-cta-secondary" id="loadMoreBtn" style="display:none;">
+                            Ver Más Auditorías
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: Analizador de Logs -->
+            <div id="logsTab" class="tab-content">
+                <div class="audit-header" style="margin-bottom: 2rem;">
+                    <h2>📊 Analizador de Logs Apache</h2>
+                    <p>Análisis completo de logs con comparativa de sitemap y optimización de crawl budget</p>
+                </div>
+
+                <!-- Formulario de subida -->
+                <div id="uploadForm" class="audit-form">
+                    <div class="form-group">
+                        <label>Archivo de Log del Servidor</label>
+                        <div class="upload-zone" onclick="document.getElementById('logFile').click()" id="uploadZone">
+                            <div id="uploadText">
+                                <h3>📄 Arrastra tu archivo de log aquí</h3>
+                                <p>O haz clic para seleccionar archivo</p>
+                                <small>Formatos soportados: .log, .gz (máximo 100MB)</small>
+                            </div>
+                        </div>
+                        <input type="file" id="logFile" accept=".log,.gz" style="display: none;">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sitemapUrl">URL del Sitemap (Opcional)</label>
+                        <input type="url" id="sitemapUrl" placeholder="https://tudominio.com/sitemap.xml">
+                        <small>Para análisis comparativo entre sitemap y crawling real</small>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" onclick="iniciarAnalisis()" class="herramientas-cta-primary" id="analyzeBtn" disabled>
+                            🚀 Iniciar Análisis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sección de progreso -->
+                <div id="progressSection" class="progress-section">
+                    <h3>🔄 Procesando análisis...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">Iniciando análisis...</p>
+                </div>
+
+                <!-- Resultados -->
+                <div id="resultsSection" class="results-section">
+                    <h3>📈 Resultados del Análisis</h3>
+                    
+                    <div class="stats-summary" id="statsSummary">
+                        <!-- Las estadísticas se insertarán aquí -->
+                    </div>
+
+                    <div class="chart-container">
+                        <h4>Distribución de Códigos de Estado HTTP</h4>
+                        <canvas id="statusChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <h4>Actividad de Bots vs Usuarios</h4>
+                        <canvas id="botsChart"></canvas>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">🔍 URLs Más Crawleadas</div>
+                        <table id="topUrlsTable">
+                            <thead>
+                                <tr>
+                                    <th>URL</th>
+                                    <th>Visitas</th>
+                                    <th>Crawleada por Bots</th>
+                                    <th>En Sitemap</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-container">
+                        <div class="table-header">🤖 Actividad de Bots</div>
+                        <table id="botsTable">
+                            <thead>
+                                <tr>
+                                    <th>Bot</th>
+                                    <th>Peticiones</th>
+                                    <th>% del Total</th>
+                                    <th>URLs Únicas</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="form-actions">
+                        <button onclick="nuevoAnalisis()" class="herramientas-cta-primary">Nuevo Análisis</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NEW AUDIT MODAL -->
+    <div id="newAuditModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 10px; max-width: 500px; width: 90%;">
+            <h3>Nueva Auditoría SEO</h3>
+            <form id="newAuditForm">
+                <div style="margin-bottom: 20px;">
+                    <label for="auditUrl" style="display: block; margin-bottom: 5px;">URL del sitio web *</label>
+                    <input type="url" id="auditUrl" required placeholder="https://ejemplo.com" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px;">Tipo de auditoría</label>
+                    <select id="auditType" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;">
+                        <option value="basic">Auditoría Básica</option>
+                        <option value="complete">Auditoría Completa</option>
+                        <option value="mobile">Mobile-First</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" onclick="closeNewAuditModal()" style="padding: 10px 20px; border: 1px solid #ddd; background: white; border-radius: 5px; cursor: pointer;">
+                        Cancelar
+                    </button>
+                    <button type="submit" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Iniciar Auditoría
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="herramientas-footer">
+        <div class="container">
+            <p>Creado con ❤️ por <a href="https://jorgelaborda.es" target="_blank">jorgelaborda.es</a></p>
+        </div>
+    </footer>
+
+    <script>
+        // Configuración global
+        const API_BASE = 'https://herramientas.jorgelaborda.es/api';
+        
+        // Variables globales compartidas
+        let currentPage = 1;
+        let isLoading = false;
+        let userStats = {
+            total: 0,
+            completed: 0,
+            pending: 0,
+            avgScore: 0
+        };
+
+        // Variables del analizador de logs
+        let archivoSeleccionado = null;
+        let analisisId = null;
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!isAuthenticated()) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            initializeDashboard();
+            configurarEventosLogs();
+        });
+
+        // ============= FUNCIONES COMPARTIDAS =============
+        
+        function isAuthenticated() {
+            return localStorage.getItem('authToken') && localStorage.getItem('userEmail');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function logout() {
+            if (confirm('¿Seguro que quieres cerrar sesión?')) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userId');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // ============= SISTEMA DE TABS =============
+        
+        function switchTab(tabName) {
+            // Ocultar todos los tabs
+            const allTabs = document.querySelectorAll('.tab-content');
+            const allButtons = document.querySelectorAll('.tab-button');
+            
+            allTabs.forEach(tab => tab.classList.remove('active'));
+            allButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Cargar datos específicos del tab si es necesario
+            if (tabName === 'dashboard') {
+                // Ya se cargan automáticamente al inicio
+            } else if (tabName === 'logs') {
+                // No necesita carga automática
+            }
+        }
+
+        // ============= FUNCIONES DEL DASHBOARD =============
+        
+        async function initializeDashboard() {
+            const userEmail = localStorage.getItem('userEmail');
+            document.getElementById('userEmail').textContent = userEmail || 'Usuario';
+
+            await Promise.all([
+                loadUserStats(),
+                loadRecentAudits()
+            ]);
+        }
+
+        async function loadUserStats() {
+            try {
+                const response = await fetch(`${API_BASE}/audits?limit=100`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error cargando estadísticas');
+                }
+
+                const data = await response.json();
+                const audits = data.audits || [];
+                const total = audits.length;
+                const completed = audits.filter(a => a.status === 'completed').length;
+                const pending = audits.filter(a => a.status === 'pending').length;
+                
+                const completedAudits = audits.filter(a => a.status === 'completed' && a.results && a.results.seo);
+                const avgScore = completedAudits.length > 0 
+                    ? Math.round(completedAudits.reduce((sum, a) => sum + a.results.seo.score, 0) / completedAudits.length)
+                    : 0;
+
+                document.querySelector('#totalAudits .stat-number').textContent = total;
+                document.querySelector('#completedAudits .stat-number').textContent = completed;
+                document.querySelector('#pendingAudits .stat-number').textContent = pending;
+                document.querySelector('#avgScore .stat-number').textContent = avgScore > 0 ? `${avgScore}%` : '--';
+
+                userStats = { total, completed, pending, avgScore };
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showError('Error cargando estadísticas');
+                
+                document.querySelector('#totalAudits .stat-number').textContent = '--';
+                document.querySelector('#completedAudits .stat-number').textContent = '--';
+                document.querySelector('#pendingAudits .stat-number').textContent = '--';
+                document.querySelector('#avgScore .stat-number').textContent = '--';
+            }
+        }
+
+        async function loadRecentAudits() {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/audits?page=${currentPage}&limit=5`, {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error cargando auditorías');
+                }
+
+                const data = await response.json();
+                
+                if (currentPage === 1) {
+                    displayAudits(data.audits || []);
+                } else {
+                    appendAudits(data.audits || []);
+                }
+
+                const hasMore = data.pagination && currentPage < data.pagination.totalPages;
+                document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+
+            } catch (error) {
+                console.error('Error loading audits:', error);
+                showError('Error cargando auditorías');
+                
+                if (currentPage === 1) {
+                    displayEmptyState();
+                }
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function displayAudits(audits) {
+            const auditsList = document.getElementById('auditsList');
+            
+            if (audits.length === 0) {
+                displayEmptyState();
+                return;
+            }
+
+            auditsList.innerHTML = audits.map(audit => createAuditHTML(audit)).join('');
+        }
+
+        function appendAudits(audits) {
+            const auditsList = document.getElementById('auditsList');
+            const newHTML = audits.map(audit => createAuditHTML(audit)).join('');
+            auditsList.insertAdjacentHTML('beforeend', newHTML);
+        }
+
+        function createAuditHTML(audit) {
+            const date = new Date(audit.created_at).toLocaleDateString('es-ES');
+            const statusClass = audit.status === 'completed' ? 'status-completed' : 
+                               audit.status === 'pending' ? 'status-processing' : 'status-failed';
+            const statusText = audit.status === 'completed' ? 'Completada' : 
+                              audit.status === 'pending' ? 'En proceso' : 'Fallida';
+            
+            const score = audit.results && audit.results.seo ? audit.results.seo.score : 0;
+            
+            return `
+                <div class="audit-item">
+                    <div class="audit-info">
+                        <h3>${audit.url}</h3>
+                        <p>Auditoría ${audit.config.type || 'básica'} ${score > 0 ? `- Puntuación SEO: ${score}%` : ''}</p>
+                        <span class="audit-date">${date}</span>
+                    </div>
+                    <div class="audit-status">
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        ${audit.status === 'completed' 
+                            ? `<a href="#" onclick="viewAuditResults(${audit.id})" class="view-audit-btn">Ver Reporte</a>`
+                            : `<a href="#" onclick="viewAuditStatus(${audit.id})" class="view-audit-btn">Ver Estado</a>`
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayEmptyState() {
+            const auditsList = document.getElementById('auditsList');
+            auditsList.innerHTML = `
+                <div class="empty-state">
+                    <h3>No tienes auditorías aún</h3>
+                    <p>Crea tu primera auditoría para comenzar a optimizar tu SEO</p>
+                    <button onclick="createNewAudit()" class="herramientas-cta-primary" style="margin-top: 15px;">
+                        Nueva Auditoría
+                    </button>
+                </div>
+            `;
+        }
+
+        function refreshAudits() {
+            currentPage = 1;
+            loadRecentAudits();
+            loadUserStats();
+        }
+
+        function loadMoreAudits() {
+            currentPage++;
+            loadRecentAudits();
+        }
+
+        function createNewAudit() {
+            document.getElementById('newAuditModal').style.display = 'block';
+        }
+
+        function closeNewAuditModal() {
+            document.getElementById('newAuditModal').style.display = 'none';
+            document.getElementById('newAuditForm').reset();
+        }
+
+        function viewAuditResults(auditId) {
+            window.location.href = `audit-results.html?id=${auditId}`;
+        }
+
+        function viewAuditStatus(auditId) {
+            alert(`Auditoría ${auditId} en proceso. Se completará en unos minutos.`);
+        }
+
+        // Event listener para nueva auditoría
+        document.getElementById('newAuditForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('auditUrl').value;
+            const type = document.getElementById('auditType').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/audit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: JSON.stringify({
+                        url: url,
+                        config: { type: type }
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Error creando auditoría');
+                }
+
+                const result = await response.json();
+                closeNewAuditModal();
+                refreshAudits();
+                alert(`Auditoría iniciada exitosamente. ID: ${result.auditId}`);
+
+            } catch (error) {
+                console.error('Error creating audit:', error);
+                showError(error.message);
+            }
+        });
+
+        // ============= FUNCIONES DEL ANALIZADOR DE LOGS =============
+        
+        function configurarEventosLogs() {
+            const logFile = document.getElementById('logFile');
+            const uploadZone = document.getElementById('uploadZone');
+
+            logFile.addEventListener('change', manejarSeleccionArchivo);
+
+            // Drag and drop
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                const archivos = e.dataTransfer.files;
+                if (archivos.length > 0) {
+                    logFile.files = archivos;
+                    manejarSeleccionArchivo({ target: { files: archivos } });
+                }
+            });
+        }
+
+        function manejarSeleccionArchivo(event) {
+            const archivo = event.target.files[0];
+            if (!archivo) return;
+
+            archivoSeleccionado = archivo;
+            const uploadZone = document.getElementById('uploadZone');
+            const uploadText = document.getElementById('uploadText');
+
+            uploadZone.classList.add('file-selected');
+            uploadText.innerHTML = `
+                <h3>✅ Archivo Seleccionado</h3>
+                <p><strong>${archivo.name}</strong></p>
+                <small>${(archivo.size / 1024 / 1024).toFixed(2)} MB</small>
+            `;
+
+            document.getElementById('analyzeBtn').disabled = false;
+        }
+
+        async function iniciarAnalisis() {
+            if (!archivoSeleccionado) {
+                showError('Selecciona un archivo de log primero');
+                return;
+            }
+
+            const sitemapUrl = document.getElementById('sitemapUrl').value.trim();
+
+            try {
+                document.getElementById('uploadForm').style.display = 'none';
+                document.getElementById('progressSection').style.display = 'block';
+
+                const formData = new FormData();
+                formData.append('logFile', archivoSeleccionado);
+                if (sitemapUrl) {
+                    formData.append('sitemapUrl', sitemapUrl);
+                }
+
+                const respuesta = await fetch(`${API_BASE}/analyze-log`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                    },
+                    body: formData
+                });
+
+                if (!respuesta.ok) {
+                    const error = await respuesta.json();
+                    throw new Error(error.error || 'Error iniciando análisis');
+                }
+
+                const resultado = await respuesta.json();
+                analisisId = resultado.analysisId;
+
+                esperarResultados();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message);
+                volverAFormulario();
+            }
+        }
+
+        async function esperarResultados() {
+            const maxIntentos = 60;
+            let intentos = 0;
+
+            const intervalo = setInterval(async () => {
+                try {
+                    intentos++;
+                    actualizarProgreso((intentos / maxIntentos) * 100, 'Procesando archivo...');
+
+                    const respuesta = await fetch(`${API_BASE}/log-analysis/${analisisId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                        }
+                    });
+
+                    if (!respuesta.ok) throw new Error('Error consultando estado');
+
+                    const analisis = await respuesta.json();
+
+                    if (analisis.status === 'completed') {
+                        clearInterval(intervalo);
+                        mostrarResultados(analisis.results);
+                    } else if (analisis.status === 'failed') {
+                        clearInterval(intervalo);
+                        throw new Error('El análisis falló en el servidor');
+                    }
+
+                    if (intentos >= maxIntentos) {
+                        clearInterval(intervalo);
+                        throw new Error('Timeout: el análisis está tardando demasiado');
+                    }
+
+                } catch (error) {
+                    clearInterval(intervalo);
+                    showError(error.message);
+                    volverAFormulario();
+                }
+            }, 5000);
+        }
+
+        function actualizarProgreso(porcentaje, texto) {
+            document.getElementById('progressFill').style.width = porcentaje + '%';
+            document.getElementById('progressText').textContent = texto;
+        }
+
+        function mostrarResultados(estadisticas) {
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+
+            mostrarEstadisticasResumidas(estadisticas);
+            crearGraficos(estadisticas);
+            llenarTablas(estadisticas);
+        }
+
+        function mostrarEstadisticasResumidas(stats) {
+            const summary = document.getElementById('statsSummary');
+            summary.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${stats.totalPeticiones?.toLocaleString() || 0}</div>
+                    <div class="stat-label">Total Peticiones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${stats.peticionesBots?.toLocaleString() || 0}</div>
+                    <div class="stat-label">Peticiones de Bots</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${Object.keys(stats.estadisticasUrl || {}).length}</div>
+                    <div class="stat-label">URLs Únicas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${Object.keys(stats.estadisticasBots || {}).length}</div>
+                    <div class="stat-label">Bots Detectados</div>
+                </div>
+            `;
+        }
+
+        function crearGraficos(stats) {
+            // Gráfico de códigos de estado
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(stats.codigosEstado || {}),
+                    datasets: [{
+                        data: Object.values(stats.codigosEstado || {}),
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444']
+                    }]
+                }
+            });
+
+            // Gráfico de bots vs usuarios
+            const botsCtx = document.getElementById('botsChart').getContext('2d');
+            new Chart(botsCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Bots', 'Usuarios'],
+                    datasets: [{
+                        data: [stats.peticionesBots || 0, (stats.totalPeticiones || 0) - (stats.peticionesBots || 0)],
+                        backgroundColor: ['#ef4444', '#10b981']
+                    }]
+                }
+            });
+        }
+
+        function llenarTablas(stats) {
+            // Tabla de URLs
+            const urlsTable = document.querySelector('#topUrlsTable tbody');
+            urlsTable.innerHTML = '';
+            
+            Object.entries(stats.estadisticasUrl || {})
+                .sort(([,a], [,b]) => b.conteo - a.conteo)
+                .slice(0, 10)
+                .forEach(([url, data]) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis;">${url}</td>
+                        <td>${data.conteo}</td>
+                        <td>${data.crawleadaPorBots || 0}</td>
+                        <td>${data.enSitemap === true ? '✅' : data.enSitemap === false ? '❌' : 'N/A'}</td>
+                    `;
+                    urlsTable.appendChild(tr);
+                });
+
+            // Tabla de bots
+            const botsTable = document.querySelector('#botsTable tbody');
+            botsTable.innerHTML = '';
+            
+            Object.entries(stats.estadisticasBots || {})
+                .sort(([,a], [,b]) => b.conteo - a.conteo)
+                .slice(0, 10)
+                .forEach(([bot, data]) => {
+                    const porcentaje = ((data.conteo / stats.totalPeticiones) * 100).toFixed(1);
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${bot}</td>
+                        <td>${data.conteo}</td>
+                        <td>${porcentaje}%</td>
+                        <td>${data.urlsUnicas?.length || 0}</td>
+                    `;
+                    botsTable.appendChild(tr);
+                });
+        }
+
+        function volverAFormulario() {
+            document.getElementById('progressSection').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('uploadForm').style.display = 'block';
+        }
+
+        function nuevoAnalisis() {
+            volverAFormulario();
+            archivoSeleccionado = null;
+            analisisId = null;
+            document.getElementById('logFile').value = '';
+            document.getElementById('sitemapUrl').value = '';
+            document.getElementById('uploadZone').classList.remove('file-selected');
+            document.getElementById('uploadText').innerHTML = `
+                <h3>📄 Arrastra tu archivo de log aquí</h3>
+                <p>O haz clic para seleccionar archivo</p>
+                <small>Formatos soportados: .log, .gz (máximo 100MB)</small>
+            `;
+            document.getElementById('analyzeBtn').disabled = true;
+        }
+
+        // Event listener para cerrar modal al hacer click fuera
+        document.getElementById('newAuditModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeNewAuditModal();
+            }
+        });
+    </script>
+
+</body>
+</html>
