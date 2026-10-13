@@ -1,4 +1,4 @@
 User-agent: *
-Allow: /
+Disallow: /privado/
 
 Sitemap: https://herramientas.jorgelaborda.es/sitemap.xml

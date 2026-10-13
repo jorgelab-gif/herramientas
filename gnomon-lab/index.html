@@ -8,23 +8,42 @@
 <link rel="canonical" href="https://herramientas.jorgelaborda.es/gnomon-lab/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="es_ES">
+<meta property="og:site_name" content="Jorge Laborda">
 <meta property="og:title" content="Gnomon Lab · Herramientas de Jorge Laborda">
 <meta property="og:description" content="Gnomon Lab: Mide visitas y conversiones sin guardar nada en el navegador del usuario, para poder quitar el banner de cookies.">
 <meta property="og:url" content="https://herramientas.jorgelaborda.es/gnomon-lab/">
-<link rel="icon" href="../favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="../assets/styles.css">
+<link rel="icon" href="https://jorgelaborda.es/wp-content/uploads/2022/12/cropped-cropped-Joorge-logo-270x270.png">
+<link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
 <a class="skip" href="#contenido">Saltar al contenido</a>
 <header class="site-header">
   <div class="wrap header-row">
-    <a class="brand" href="../">Herramientas <span>· Jorge Laborda</span></a>
-    <a class="header-link" href="https://jorgelaborda.es/">jorgelaborda.es</a>
+    <a class="logo" href="https://jorgelaborda.es/"><img src="https://jorgelaborda.es/wp-content/uploads/2022/12/cropped-Joorge-logo.png" alt="Jorge Laborda" width="200" height="59"></a>
+    <nav class="main-nav" aria-label="Menú principal">
+      <details class="menu-toggle">
+        <summary>Menú</summary>
+        <ul>
+        <li><a href="https://jorgelaborda.es/consultor-seo-granada/">Consultor SEO Granada</a></li>
+        <li><a href="https://jorgelaborda.es/mantenimiento-wordpress-granada/">Mantenimiento WordPress Granada</a></li>
+        <li><a href="/">Herramientas</a></li>
+        <li><a href="https://jorgelaborda.es/sobre-mi/">Sobre mí</a></li>
+        <li><a href="https://jorgelaborda.es/contacto/">Contacto</a></li>
+        </ul>
+      </details>
+      <ul class="menu-wide">
+        <li><a href="https://jorgelaborda.es/consultor-seo-granada/">Consultor SEO Granada</a></li>
+        <li><a href="https://jorgelaborda.es/mantenimiento-wordpress-granada/">Mantenimiento WordPress Granada</a></li>
+        <li><a href="/">Herramientas</a></li>
+        <li><a href="https://jorgelaborda.es/sobre-mi/">Sobre mí</a></li>
+        <li><a href="https://jorgelaborda.es/contacto/">Contacto</a></li>
+      </ul>
+    </nav>
   </div>
 </header>
 <main id="contenido">
 <article class="wrap tool">
-  <p class="crumbs"><a href="../">Herramientas</a> / Gnomon Lab</p>
+  <p class="crumbs"><a href="/">Herramientas</a> / Gnomon Lab</p>
   <h1>Gnomon Lab</h1>
   <p class="lead">Analítica web propia, sin cookies.</p>
   <p class="meta"><span class="badge badge-cerrado">Acceso cerrado</span> <span class="state">En desarrollo</span></p>
@@ -42,35 +61,107 @@
     <p class="who">Primero lo usaré en mis webs; después estará disponible para clientes de Jano Lab.</p>
   </section>
 
-  <section class="access" aria-labelledby="acceso">
-    <h2 id="acceso">Acceso</h2>
+  <section class="access" id="acceso" aria-labelledby="acceso-titulo">
+    <h2 id="acceso-titulo">Acceso</h2>
     <dl class="access-facts">
       <dt>Tipo de acceso</dt><dd>Cerrado</dd>
       <dt>Estado</dt><dd>En desarrollo</dd>
     </dl>
-    <div class="access-how">
-      <p>Todavía no está disponible.</p>
-      <p>Si quieres probarlo en tu web cuando esté listo, escríbeme y te aviso.</p>
-      <p><a class="button" href="mailto:herramientas@jorgelaborda.es?subject=Av%C3%ADsame%20cuando%20est%C3%A9%20listo%20%C2%B7%20Gnomon%20Lab&amp;body=Hola%20Jorge%2C%0A%0AMe%20gustar%C3%ADa%20av%C3%ADsame%20cuando%20est%C3%A9%20listo%20de%20Gnomon%20Lab.%0A%0ANombre%3A%0AWeb%20o%20empresa%3A%0APara%20qu%C3%A9%20lo%20necesito%3A%0A">Avísame cuando esté listo</a></p>
-      <p class="small">Se abrirá tu correo con un mensaje para <a href="mailto:herramientas@jorgelaborda.es">herramientas@jorgelaborda.es</a>.</p>
-    </div>
+    <p>Todavía no está disponible.</p>
+    <p>Si quieres probarlo en tu web cuando esté listo, rellena el formulario y te aviso.</p>
+    <h3>Solicitar acceso</h3>
+    <form class="request" method="post" action="/solicitar.php" data-request>
+      <input type="hidden" name="herramienta" value="gnomon-lab">
+      <input type="hidden" name="t" value="">
+      <input type="hidden" name="s" value="">
+      <div class="trap" aria-hidden="true">
+        <label for="empresa_web_gnomon-lab">No rellenes este campo</label>
+        <input id="empresa_web_gnomon-lab" name="empresa_web" type="text" tabindex="-1" autocomplete="off">
+      </div>
+
+      <fieldset>
+        <legend>Tus datos</legend>
+        <p class="f"><label for="nombre">Nombre y apellidos</label>
+        <input id="nombre" name="nombre" type="text" autocomplete="name" required maxlength="120"></p>
+        <p class="f"><label for="email">Email</label>
+        <input id="email" name="email" type="email" autocomplete="email" required maxlength="160"></p>
+        <p class="f"><label for="telefono">Teléfono</label>
+        <input id="telefono" name="telefono" type="tel" autocomplete="tel" required maxlength="30" pattern="[0-9 +]{9,30}" aria-describedby="telefono-ayuda"><small id="telefono-ayuda">Con prefijo si no es de España.</small></p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Datos de facturación</legend>
+        <p class="f"><label for="razon_social">Nombre fiscal o razón social</label>
+        <input id="razon_social" name="razon_social" type="text" autocomplete="organization" required maxlength="160"></p>
+        <p class="f"><label for="nif">NIF / CIF</label>
+        <input id="nif" name="nif" type="text" required maxlength="20"></p>
+        <p class="f"><label for="direccion">Dirección</label>
+        <input id="direccion" name="direccion" type="text" autocomplete="street-address" required maxlength="200"></p>
+        <div class="row">
+        <p class="f"><label for="cp">Código postal</label>
+        <input id="cp" name="cp" type="text" autocomplete="postal-code" required maxlength="10"></p>
+        <p class="f"><label for="ciudad">Población</label>
+        <input id="ciudad" name="ciudad" type="text" autocomplete="address-level2" required maxlength="80"></p>
+        </div>
+        <div class="row">
+        <p class="f"><label for="provincia">Provincia</label>
+        <input id="provincia" name="provincia" type="text" autocomplete="address-level1" required maxlength="80"></p>
+        <p class="f"><label for="pais">País</label>
+        <input id="pais" name="pais" type="text" autocomplete="country-name" required maxlength="80" value="España"></p>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Sobre la solicitud</legend>
+        <p class="f"><label for="web">Web donde quieres usar Gnomon Lab</label>
+        <input id="web" name="web" type="url" autocomplete="url" required maxlength="200" placeholder="https://"></p>
+        <p class="f"><label for="origen">¿Cómo me has conocido?</label>
+          <select id="origen" name="origen" required>
+            <option value="">Elige una opción</option>
+            <option>Google u otro buscador</option>
+            <option>LinkedIn</option>
+            <option>Podcast</option>
+            <option>Blog de jorgelaborda.es</option>
+            <option>Recomendación de alguien</option>
+            <option>Ya soy cliente</option>
+            <option>Otro</option>
+          </select></p>
+        <p class="f"><label for="motivo">¿Para qué quieres usar Gnomon Lab?</label>
+        <textarea id="motivo" name="motivo" rows="5" minlength="20" maxlength="3000" required></textarea></p>
+      </fieldset>
+
+      <p class="f check"><input id="privacidad" name="privacidad" type="checkbox" value="1" required>
+        <label for="privacidad">He leído y acepto la <a href="https://jorgelaborda.es/politica-de-privacidad/">política de privacidad</a>.</label></p>
+      <p class="legal">Responsable: Jorge Laborda. Finalidad: estudiar tu solicitud de acceso y contactar contigo. No se ceden datos a terceros salvo obligación legal. Puedes ejercer tus derechos escribiendo a herramientas@jorgelaborda.es.</p>
+      <p><button class="button" type="submit">Avísame cuando esté listo</button></p>
+      <noscript><p class="small">Para enviar el formulario necesitas tener JavaScript activado.</p></noscript>
+    </form>
+    <script src="/assets/form.js" defer></script>
   </section>
 
   <nav class="others" aria-label="Otras herramientas">
     <h2>Otras herramientas</h2>
     <ul>
-      <li><a href="../jano-lab/">Jano Lab</a> · Gestión de acciones y cambios en webs, con medición de su impacto.</li>
-      <li><a href="../crawl-lab/">Crawl Lab</a> · Análisis de logs del servidor para ver cómo rastrean los bots una web.</li>
-      <li><a href="../sincro-lab/">Sincro Lab</a> · Gestión de reservas para apartamentos turísticos.</li>
+      <li><a href="/jano-lab/">Jano Lab</a> · Gestión de acciones y cambios en webs, con medición de su impacto.</li>
+      <li><a href="/crawl-lab/">Crawl Lab</a> · Análisis de logs del servidor para ver cómo rastrean los bots una web.</li>
+      <li><a href="/sincro-lab/">Sincro Lab</a> · Gestión de reservas para apartamentos turísticos.</li>
     </ul>
   </nav>
 </article>
 </main>
 <footer class="site-footer">
-  <div class="wrap">
-    <p>Herramientas creadas por <a href="https://jorgelaborda.es/">Jorge Laborda</a>. Para cualquier duda, escribe a <a href="mailto:herramientas@jorgelaborda.es">herramientas@jorgelaborda.es</a>.</p>
-    <p>Esta web no usa cookies.</p>
+  <div class="wrap footer-row">
+    <div>
+      <img src="https://jorgelaborda.es/wp-content/uploads/2022/12/cropped-Joorge-logo.png" alt="" width="160" height="47" class="footer-logo">
+      <p><a href="mailto:hola@jorgelaborda.es">hola@jorgelaborda.es</a> · <a href="https://linkedin.com/in/jorge-laborda-web">LinkedIn</a></p>
+    </div>
+    <ul class="footer-links">
+      <li><a href="https://jorgelaborda.es/">jorgelaborda.es</a></li>
+      <li><a href="https://jorgelaborda.es/contacto/">Contacto</a></li>
+      <li><a href="https://jorgelaborda.es/politica-de-privacidad/">Política de privacidad</a></li>
+    </ul>
   </div>
+  <div class="wrap"><p class="copy">© 2026 Jorge Laborda · Esta web no usa cookies.</p></div>
 </footer>
 </body>
 </html>

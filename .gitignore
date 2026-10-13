@@ -1,0 +1,4 @@
+privado/config.php
+privado/limites/*
+!privado/limites/.gitkeep
+*.zip
