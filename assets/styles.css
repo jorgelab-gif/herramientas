@@ -1,21 +1,22 @@
-/* Estructura y tipografía de GeneratePress, el tema de jorgelaborda.es.
-   Los colores de marca están solo aquí: cambia estas variables para ajustarlos. */
+/* Colores del child theme de jorgelaborda.es (negro y verde) sobre la estructura de GeneratePress.
+   Los colores de marca están solo aquí. */
 :root {
-  --accent: #1e73be;        /* enlaces y botones */
-  --accent-hover: #155a96;
-  --accent-text: #ffffff;
-  --contrast: #222222;      /* texto */
-  --contrast-2: #575760;    /* texto secundario */
-  --border: #e0e0e6;
-  --base: #f7f8f9;          /* fondo de la página */
-  --surface: #ffffff;       /* cabecera, tarjetas, pie */
-  --closed-bg: #fdf0e6;
-  --closed-text: #8a3c0c;
-  --open-bg: #e3f4ee;
-  --open-text: #0b5f45;
-  --error: #b42318;
-  --focus: #b45309;
-  color-scheme: light;
+  --accent: #10b981;        /* verde principal */
+  --accent-hover: #059669;
+  --accent-text: #000000;   /* texto sobre verde: negro para que se lea bien */
+  --contrast: #ffffff;      /* texto */
+  --contrast-2: #cbd5e1;    /* texto secundario */
+  --border: #333333;
+  --base: #000000;          /* fondo de la página */
+  --surface: #1a1a1a;       /* cabecera, pie */
+  --surface-2: #2a2a2a;     /* tarjetas, campos */
+  --closed-bg: #3a2414;
+  --closed-text: #fbc597;
+  --open-bg: #064e3b;
+  --open-text: #a7f3d0;
+  --error: #f87171;
+  --focus: #fbbf24;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -48,7 +49,7 @@ h3 { font-size: 1.2rem; margin: 2rem 0 .7rem; }
 .main-nav a { color: var(--contrast); text-decoration: none; font-size: 15px; }
 .main-nav a:hover, .main-nav a[aria-current] { color: var(--accent); }
 .menu-wide { display: none; }
-.menu-toggle summary { cursor: pointer; list-style: none; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 4px; font-size: 15px; }
+.menu-toggle summary { cursor: pointer; list-style: none; padding: .4rem .8rem; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; color: var(--contrast); }
 .menu-toggle summary::-webkit-details-marker { display: none; }
 .menu-toggle summary::before { content: "☰ "; }
 .menu-toggle[open] ul { position: absolute; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: .5rem 16px 1rem; z-index: 5; }
@@ -64,11 +65,11 @@ h3 { font-size: 1.2rem; margin: 2rem 0 .7rem; }
 .lead { font-size: 1.2rem; max-width: 46rem; }
 .hero p, .tool p { max-width: 46rem; }
 .grid { list-style: none; padding: 0; margin: 1rem 0 3rem; display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; position: relative; display: flex; flex-direction: column; }
+.card { background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%); border: 2px solid var(--border); border-radius: 16px; padding: 1.5rem; position: relative; display: flex; flex-direction: column; }
 .card h2 { margin: 0 0 .3rem; font-size: 1.35rem; }
 .card h2 a { color: var(--contrast); text-decoration: none; }
 .card h2 a::after { content: ""; position: absolute; inset: 0; }
-.card:hover { border-color: var(--accent); }
+.card:hover { border-color: var(--accent); box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2); }
 .card:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
 .card h2 a:focus-visible { outline: none; }
 .card p { margin: 0 0 .8rem; color: var(--contrast-2); }
@@ -87,7 +88,7 @@ h3 { font-size: 1.2rem; margin: 2rem 0 .7rem; }
 .features { padding-left: 1.2rem; }
 .features li { margin: .35rem 0; }
 .who { color: var(--contrast-2); }
-.access { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 0 1.5rem 1.5rem; margin-top: 2.2rem; scroll-margin-top: 1rem; }
+.access { background: var(--surface); border: 2px solid var(--border); border-radius: 16px; padding: 0 1.5rem 1.5rem; margin-top: 2.2rem; scroll-margin-top: 1rem; }
 .access h2 { margin-top: 1.3rem; }
 .access-facts { display: grid; grid-template-columns: max-content 1fr; gap: .2rem 1.2rem; margin: 0 0 1rem; }
 .access-facts dt { color: var(--contrast-2); }
@@ -102,10 +103,10 @@ h3 { font-size: 1.2rem; margin: 2rem 0 .7rem; }
 .f small { display: block; color: var(--contrast-2); font-size: .85rem; }
 .opt { font-weight: 400; color: var(--contrast-2); }
 .request input[type=text], .request input[type=email], .request input[type=tel], .request input[type=url], .request select, .request textarea {
-  width: 100%; font: inherit; color: var(--contrast); background: #fafafa; border: 1px solid #cccccc; border-radius: 4px; padding: .55rem .7rem;
+  width: 100%; font: inherit; color: var(--contrast); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: .75rem 1rem;
 }
 .request textarea { resize: vertical; }
-.request input:focus, .request select:focus, .request textarea:focus { background: #ffffff; border-color: var(--accent); }
+.request input:focus, .request select:focus, .request textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15); }
 .row { display: grid; gap: 0 16px; grid-template-columns: 1fr; }
 @media (min-width: 600px) { .row { grid-template-columns: 1fr 1fr; } }
 .check { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1.2rem; }
@@ -114,15 +115,15 @@ h3 { font-size: 1.2rem; margin: 2rem 0 .7rem; }
 .legal { font-size: .82rem; color: var(--contrast-2); line-height: 1.5; }
 .trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 
-.button { display: inline-block; background: var(--accent); color: var(--accent-text); padding: .75rem 1.3rem; border: 0; border-radius: 4px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
-.button:hover { background: var(--accent-hover); color: var(--accent-text); }
+.button { display: inline-block; background: var(--accent); color: var(--accent-text); padding: .85rem 1.6rem; border: 0; border-radius: 8px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; }
+.button:hover { background: var(--accent-hover); color: var(--accent-text); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
 .small { font-size: .9rem; color: var(--contrast-2); }
 
 .others ul { padding-left: 1.2rem; }
 .others li { margin: .35rem 0; color: var(--contrast-2); }
 
 /* Pie */
-.site-footer { background: var(--surface); border-top: 1px solid var(--border); padding: 2rem 0 1rem; color: var(--contrast-2); font-size: .92rem; }
+.site-footer { background: var(--surface); border-top: 2px solid var(--accent); padding: 2rem 0 1rem; color: var(--contrast-2); font-size: .92rem; }
 .footer-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1.5rem; }
 .footer-logo { display: block; height: auto; max-width: 150px; margin-bottom: .5rem; }
 .footer-links { list-style: none; margin: 0; padding: 0; }
